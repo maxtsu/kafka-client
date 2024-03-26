@@ -1,8 +1,8 @@
 package main
 
 import (
-	"byoi/gnfingest"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,7 +17,9 @@ func main() {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	byteResult := gnfingest.ReadFile(config_file)
+	// Rad the config file
+	byteResult := ReadFile(config_file)
+
 	var configYaml Config
 	err := yaml.Unmarshal(byteResult, &configYaml)
 	if err != nil {
@@ -62,7 +64,6 @@ func main() {
 				run = false
 			default:
 				// Poll the consumer for messages or events
-				//message := gnfingest.Message{}
 				event := consumer.Poll(400)
 				if event == nil {
 					continue
@@ -135,4 +136,16 @@ type Config struct {
 	GroupID          string `yaml:"group.id"`
 	Topics           string `yaml:"topics"`
 	AutoOffset       string `yaml:"auto.offset.reset"`
+}
+
+// Function to read text file return byteResult
+func ReadFile(fileName string) []byte {
+	file, err := os.Open(fileName)
+	if err != nil {
+		fmt.Println("File reading error", err)
+		return []byte{}
+	}
+	byteResult, _ := io.ReadAll(file)
+	file.Close()
+	return byteResult
 }
