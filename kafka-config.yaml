@@ -3,7 +3,7 @@ producer: Yes
 #producer: No
 bootstrap.servers: "10.54.17.74:9092"
 sasl.mechanisms: "PLAIN"
-security.protocol: "PLAINTEXT"
+security.protocol: "SASL_PLAINTEXT"
 sasl.username: "user"
 sasl.password: "secret1"
 ssl.ca.location: ""
