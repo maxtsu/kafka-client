@@ -1,2 +1,2 @@
-# Hello-world
-first repositry
+# kafka-client
+kafka golang client
