@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -126,12 +125,6 @@ func main() {
 		fmt.Printf("Created Producer %v\n", producer)
 		defer producer.Close()
 
-		// Define the message to be sent
-		/*		message := Message{
-				Key:   "example_key",
-				Value: "Hello, Kafka!",
-			}*/
-
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("Simple Shell")
 		fmt.Println("---------------------")
@@ -151,21 +144,6 @@ func main() {
 				return
 			}
 			fmt.Println("Message produced successfully!")
-
-			/*
-				// Serialize the message
-				serializedMessage, err := serializeMessage(message)
-				if err != nil {
-					fmt.Printf("Failed to serialize message: %s\n", err)
-					return
-				}
-				// Produce the message to the Kafka topic
-				err = produceMessage(producer, configYaml.Topics, serializedMessage)
-				if err != nil {
-					fmt.Printf("Failed to produce message: %s\n", err)
-					return
-				}
-				fmt.Println("Message produced successfully!") */
 		}
 	}
 }
@@ -184,11 +162,6 @@ type Config struct {
 	AutoOffset       string `yaml:"auto.offset.reset"`
 }
 
-type Message struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
 // Function to read text file return byteResult
 func ReadFile(fileName string) []byte {
 	file, err := os.Open(fileName)
@@ -199,15 +172,6 @@ func ReadFile(fileName string) []byte {
 	byteResult, _ := io.ReadAll(file)
 	file.Close()
 	return byteResult
-}
-
-func serializeMessage(message Message) ([]byte, error) {
-	// Serialize the message struct to JSON
-	serialized, err := json.Marshal(message)
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize message: %w", err)
-	}
-	return serialized, nil
 }
 
 func produceMessage(p *kafka.Producer, topic string, message []byte) error {
