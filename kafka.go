@@ -118,16 +118,16 @@ func main() {
 		defer producer.Close()
 
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("Simple Shell")
-		fmt.Println("---------------------")
-
+		fmt.Println("Kafka Producer")
+		fmt.Println("Insert/Paste JSON message and press enter")
+		fmt.Println("CTRL-C to cancel")
 		for {
 			fmt.Print("-> ")
 			text, _ := reader.ReadString('\n')
 			// convert CRLF to LF
 			text = strings.Replace(text, "\n", "", -1)
-			fmt.Println("typed text: ", text)
-
+			fmt.Println("Message to send: ", text)
+			// Convert string to serial byte format for transmission
 			bytes := []byte(text)
 			// Produce the message to the Kafka topic
 			err = produceMessage(producer, configYaml.Topics, bytes)
