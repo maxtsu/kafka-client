@@ -77,19 +77,11 @@ func main() {
 					kafkaMessage := string(e.Value)
 					//fmt.Printf("\nkafkaMessage: %s\n", kafkaMessage) //Message in single string
 					fmt.Printf("%s\n", kafkaMessage) //Message in single string
-					//json.Unmarshal([]byte(kafkaMessage), &message)
 					// Start processing message
 					//ProcessKafkaMessage(&message, device_keys)
 					if e.Headers != nil {
 						fmt.Printf("%% Headers: %v\n", e.Headers)
 					}
-					// We can store the offsets of the messages manually or let
-					// the library do it automatically based on the setting
-					// enable.auto.offset.store. Once an offset is stored, the
-					// library takes care of periodically committing it to the broker
-					// if enable.auto.commit isn't set to false (the default is true).
-					// By storing the offsets manually after completely processing
-					// each message, we can ensure atleast once processing.
 					_, err := consumer.StoreMessage(e)
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "%% Error storing offset after message %s:\n",
