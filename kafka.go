@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -28,7 +30,7 @@ func main() {
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
 
-	//If not a producer, then a consumer in teh config yaml
+	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
 		// Create kafka consumer configuration for kafkaCfg
 		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
@@ -125,27 +127,46 @@ func main() {
 		defer producer.Close()
 
 		// Define the message to be sent
-		message := Message{
-			Key:   "example_key",
-			Value: "Hello, Kafka!",
+		/*		message := Message{
+				Key:   "example_key",
+				Value: "Hello, Kafka!",
+			}*/
+
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Println("Simple Shell")
+		fmt.Println("---------------------")
+
+		for {
+			fmt.Print("-> ")
+			text, _ := reader.ReadString('\n')
+			// convert CRLF to LF
+			text = strings.Replace(text, "\n", "", -1)
+			fmt.Println("typed text: ", text)
+
+			bytes := []byte(text)
+			// Produce the message to the Kafka topic
+			err = produceMessage(producer, configYaml.Topics, bytes)
+			if err != nil {
+				fmt.Printf("Failed to produce message: %s\n", err)
+				return
+			}
+			fmt.Println("Message produced successfully!")
+
+			/*
+				// Serialize the message
+				serializedMessage, err := serializeMessage(message)
+				if err != nil {
+					fmt.Printf("Failed to serialize message: %s\n", err)
+					return
+				}
+				// Produce the message to the Kafka topic
+				err = produceMessage(producer, configYaml.Topics, serializedMessage)
+				if err != nil {
+					fmt.Printf("Failed to produce message: %s\n", err)
+					return
+				}
+				fmt.Println("Message produced successfully!") */
 		}
-
-		// Serialize the message
-		serializedMessage, err := serializeMessage(message)
-		if err != nil {
-			fmt.Printf("Failed to serialize message: %s\n", err)
-			return
-		}
-
-		// Produce the message to the Kafka topic
-		err = produceMessage(producer, configYaml.Topics, serializedMessage)
-		if err != nil {
-			fmt.Printf("Failed to produce message: %s\n", err)
-			return
-		}
-
-		fmt.Println("Message produced successfully!")
-
 	}
 }
 
@@ -195,23 +216,19 @@ func produceMessage(p *kafka.Producer, topic string, message []byte) error {
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
 		Value:          message,
 	}
-
 	// Produce the Kafka message
 	deliveryChan := make(chan kafka.Event)
 	err := p.Produce(kafkaMessage, deliveryChan)
 	if err != nil {
 		return fmt.Errorf("failed to produce message: %w", err)
 	}
-
 	// Wait for delivery report or error
 	e := <-deliveryChan
 	m := e.(*kafka.Message)
-
 	// Check for delivery errors
 	if m.TopicPartition.Error != nil {
 		return fmt.Errorf("delivery failed: %s", m.TopicPartition.Error)
 	}
-
 	// Close the delivery channel
 	close(deliveryChan)
 
