@@ -120,7 +120,7 @@ func main() {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("Kafka Producer")
 		fmt.Println("Insert/Paste JSON message and press enter")
-		fmt.Println("CTRL-C to cancel")
+		fmt.Println("CTRL-C or CTRL-Z to cancel")
 		for {
 			fmt.Print("-> ")
 			text, _ := reader.ReadString('\n')
