@@ -29,8 +29,6 @@ func main() {
 		fmt.Println("kafka-config.yaml Unmarshall error", err)
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
-	timestamp := (time.Now()).UnixMilli()
-	fmt.Printf("time NOWIIIIII %+v\n", timestamp)
 
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
