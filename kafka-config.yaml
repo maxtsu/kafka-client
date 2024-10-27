@@ -1,7 +1,8 @@
 ---
-#configuration for kafka_v0.1.app
-producer: Yes
-#producer: No
+#configuration for kafka_v0.2.app
+#timestamp: Yes
+#producer: Yes
+producer: No
 bootstrap.servers: "10.54.17.74:9093"
 sasl.mechanisms: "PLAIN"
 security.protocol: "SASL_PLAINTEXT"

@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"gopkg.in/yaml.v2"
@@ -28,6 +29,8 @@ func main() {
 		fmt.Println("kafka-config.yaml Unmarshall error", err)
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
+	timestamp := (time.Now()).UnixMilli()
+	fmt.Printf("time NOWIIIIII %+v\n", timestamp)
 
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
@@ -75,10 +78,12 @@ func main() {
 					// Process the message received.
 					//fmt.Printf("Got a kafka message\n")
 					kafkaMessage := string(e.Value)
-					//fmt.Printf("\nkafkaMessage: %s\n", kafkaMessage) //Message in single string
-					fmt.Printf("%s\n", kafkaMessage) //Message in single string
-					// Start processing message
-					//ProcessKafkaMessage(&message, device_keys)
+					if configYaml.Timestamp {
+						timestamp := (time.Now()).UnixMilli()
+						fmt.Printf("%+v:%s\n", timestamp, kafkaMessage) //Message with timestamp
+					} else {
+						fmt.Printf("%s\n", kafkaMessage) //Message in single string
+					}
 					if e.Headers != nil {
 						fmt.Printf("%% Headers: %v\n", e.Headers)
 					}
@@ -142,6 +147,7 @@ func main() {
 
 // configuration file kafka-config.yaml
 type Config struct {
+	Timestamp        bool   `yaml:"timestamp"`
 	Producer         bool   `yaml:"producer"`
 	BootstrapServers string `yaml:"bootstrap.servers"`
 	SaslMechanisms   string `yaml:"sasl.mechanisms"`
