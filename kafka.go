@@ -78,7 +78,8 @@ func main() {
 					kafkaMessage := string(e.Value)
 					if configYaml.Timestamp {
 						timestamp := (time.Now()).UnixMilli()
-						fmt.Printf("%+v:%s\n", timestamp, kafkaMessage) //Message with timestamp
+						partition := e.TopicPartition
+						fmt.Printf("%+v: %+v %s\n", timestamp, partition, kafkaMessage) //Message with timestamp
 					} else {
 						fmt.Printf("%s\n", kafkaMessage) //Message in single string
 					}
