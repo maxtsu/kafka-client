@@ -14,9 +14,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Version 0.3
 const config_file = "kafka-config.yaml"
 
 func main() {
+	fmt.Println("kafka application v0.3")
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
