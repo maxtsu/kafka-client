@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Version 0.3
+// Version 0.4
 const config_file = "kafka-config.yaml"
 
 func main() {
