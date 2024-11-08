@@ -1,8 +1,9 @@
 # kafka-client v0.4
-kafka golang client
-Configuration parameters in the file kafka-config.yaml
-Can select producer or consumer Defined in the yaml file
-In producer more messages are pasted to console
+kafka golang client  
+Docker file is required for builinding a container image of the application  
+Configuration parameters in the file kafka-config.yaml  
+Can select producer or consumer Defined in the yaml file  
+In producer more messages are pasted to console  
 * 07/04/2024 v0.1 added producer capabilities
 * 27/10/2024 v0.2 added option to print timestamps to messages
 * 30/10/2024 v0.3 added headers and offset data
