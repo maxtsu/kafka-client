@@ -80,9 +80,9 @@ func main() {
 					//kafkaMessage := string(e.Value)  removing for speed
 					if configYaml.Timestamp {
 						timestamp := (time.Now()).UnixMilli()
-						//partition := e.TopicPartition
+						partition := e.TopicPartition
 						//fmt.Printf("%+v: %+v: %s %s\n", timestamp, partition, e.Key, kafkaMessage) //Message with timestamp
-						fmt.Printf("%+v: %s\n", timestamp, e.Key) //Reduced output of keys only
+						fmt.Printf("%+v: %+v %s\n", timestamp, partition, e.Key) //Reduced output of keys only
 					}
 					// } else {
 					// 	fmt.Printf("%s\n", kafkaMessage) //Message in single string
