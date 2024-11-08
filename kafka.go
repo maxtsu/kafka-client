@@ -77,15 +77,16 @@ func main() {
 				case *kafka.Message:
 					// Process the message received.
 					//fmt.Printf("Got a kafka message\n")
-					kafkaMessage := string(e.Value)
+					//kafkaMessage := string(e.Value)  removing for speed
 					if configYaml.Timestamp {
 						timestamp := (time.Now()).UnixMilli()
 						//partition := e.TopicPartition
 						//fmt.Printf("%+v: %+v: %s %s\n", timestamp, partition, e.Key, kafkaMessage) //Message with timestamp
 						fmt.Printf("%+v: %s\n", timestamp, e.Key) //Reduced output of keys only
-					} else {
-						fmt.Printf("%s\n", kafkaMessage) //Message in single string
 					}
+					// } else {
+					// 	fmt.Printf("%s\n", kafkaMessage) //Message in single string
+					// }
 					if e.Headers != nil {
 						fmt.Printf("%% Headers: %v\n", e.Headers)
 					}
