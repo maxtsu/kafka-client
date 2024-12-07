@@ -83,10 +83,9 @@ func main() {
 						partition := e.TopicPartition
 						fmt.Printf("%+v: %+v: %s %s\n", timestamp, partition, e.Key, kafkaMessage) //Message with timestamp
 						//fmt.Printf("%+v: %+v %s\n", timestamp, partition, e.Key) //Reduced output of keys only
+					} else {
+						fmt.Printf("%s\n", kafkaMessage) //Message in single string
 					}
-					// } else {
-					// 	fmt.Printf("%s\n", kafkaMessage) //Message in single string
-					// }
 					if e.Headers != nil {
 						fmt.Printf("%% Headers: %v\n", e.Headers)
 					}
