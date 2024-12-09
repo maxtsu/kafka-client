@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Version 0.4
+// Version 0.5
 const config_file = "kafka-config.yaml"
 
 func main() {
@@ -80,8 +80,10 @@ func main() {
 					kafkaMessage := string(e.Value)
 					if configYaml.Timestamp {
 						timestamp := (time.Now()).UnixMilli()
+						metaDataTimestamp := e.Timestamp.UnixNano() //metadata timestamp
 						partition := e.TopicPartition
-						fmt.Printf("%+v: %+v: %s %s\n", timestamp, partition, e.Key, kafkaMessage) //Message with timestamp
+						//Print Message with timestamp
+						fmt.Printf("%+v: %+v: %s %d %s\n", timestamp, partition, e.Key, metaDataTimestamp, kafkaMessage)
 						//fmt.Printf("%+v: %+v %s\n", timestamp, partition, e.Key) //Reduced output of keys only
 					} else {
 						fmt.Printf("%s\n", kafkaMessage) //Message in single string
