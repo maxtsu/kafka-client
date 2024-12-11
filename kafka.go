@@ -181,6 +181,7 @@ func produceMessage(p *kafka.Producer, topic string, message []byte) error {
 	kafkaMessage := &kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
 		Value:          message,
+		Key:            []byte("myKey"),
 	}
 	// Produce the Kafka message
 	deliveryChan := make(chan kafka.Event)

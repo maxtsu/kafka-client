@@ -9,3 +9,4 @@ In producer more messages are pasted to console
 * 30/10/2024 v0.3 added headers and offset data
 * 01/11/2024 v0.4 added message keys
 * 09/12/2024 v.05 added metadata timestamp
+* 11/12/2024 v0.6 added key to producer
