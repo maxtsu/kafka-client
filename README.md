@@ -1,4 +1,4 @@
-# kafka-client v0.5
+# kafka-client v0.7
 kafka golang client  
 Docker file is required for builinding a container image of the application  
 Configuration parameters in the file kafka-config.yaml  
@@ -10,3 +10,4 @@ In producer more messages are pasted to console
 * 01/11/2024 v0.4 added message keys
 * 09/12/2024 v.05 added metadata timestamp
 * 11/12/2024 v0.6 added key to producer
+* 12/12/2024 v0.7 added partition strategy

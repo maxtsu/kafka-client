@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Version 0.5
+// Version 0.7
 const config_file = "kafka-config.yaml"
 
 func main() {
@@ -49,7 +49,8 @@ func main() {
 			// for this group.
 			"auto.offset.reset": configYaml.AutoOffset,
 			// Whether or not we store offsets automatically.
-			"enable.auto.offset.store": false,
+			"enable.auto.offset.store":      false,
+			"partition.assignment.strategy": configYaml.PartitionStrategy,
 		})
 		if err != nil {
 			fmt.Println("Failed to create consumer. ", err)
@@ -151,17 +152,18 @@ func main() {
 
 // configuration file kafka-config.yaml
 type Config struct {
-	Timestamp        bool   `yaml:"timestamp"`
-	Producer         bool   `yaml:"producer"`
-	BootstrapServers string `yaml:"bootstrap.servers"`
-	SaslMechanisms   string `yaml:"sasl.mechanisms"`
-	SecurityProtocol string `yaml:"security.protocol"`
-	SaslUsername     string `yaml:"sasl.username"`
-	SaslPassword     string `yaml:"sasl.password"`
-	SslCaLocation    string `yaml:"ssl.ca.location"`
-	GroupID          string `yaml:"group.id"`
-	Topics           string `yaml:"topics"`
-	AutoOffset       string `yaml:"auto.offset.reset"`
+	Timestamp         bool   `yaml:"timestamp"`
+	Producer          bool   `yaml:"producer"`
+	BootstrapServers  string `yaml:"bootstrap.servers"`
+	SaslMechanisms    string `yaml:"sasl.mechanisms"`
+	SecurityProtocol  string `yaml:"security.protocol"`
+	SaslUsername      string `yaml:"sasl.username"`
+	SaslPassword      string `yaml:"sasl.password"`
+	SslCaLocation     string `yaml:"ssl.ca.location"`
+	GroupID           string `yaml:"group.id"`
+	Topics            string `yaml:"topics"`
+	AutoOffset        string `yaml:"auto.offset.reset"`
+	PartitionStrategy string `yaml:"partition.assignment.strategy"`
 }
 
 // Function to read text file return byteResult
