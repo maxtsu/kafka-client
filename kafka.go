@@ -1,30 +1,31 @@
 package main
 
 import (
-	"bufio"
+	"context"
 	"fmt"
 	"io"
+	"log"
+	"main/consumer"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/IBM/sarama"
 	"gopkg.in/yaml.v2"
 )
 
-// Version 0.5
+// Version sarama
 const config_file = "kafka-config.yaml"
 
 func main() {
-	fmt.Println("kafka application v0.5")
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+	fmt.Println("kafka sarama application v0.1")
+	keepRunning := true
 
-	// Rad the config file
+	// Read the config file
 	byteResult := ReadFile(config_file)
-
 	var configYaml Config
 	err := yaml.Unmarshal(byteResult, &configYaml)
 	if err != nil {
@@ -32,136 +33,133 @@ func main() {
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
 
+	if err != nil {
+		fmt.Printf("Failed to create TLS configuration: %v", err)
+	}
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
-		// Create kafka consumer configuration for kafkaCfg
-		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-			"bootstrap.servers":  configYaml.BootstrapServers,
-			"sasl.mechanisms":    configYaml.SaslMechanisms,
-			"security.protocol":  configYaml.SecurityProtocol,
-			"sasl.username":      configYaml.SaslUsername,
-			"sasl.password":      configYaml.SaslPassword,
-			"ssl.ca.location":    configYaml.SslCaLocation,
-			"group.id":           configYaml.GroupID,
-			"session.timeout.ms": 6000,
-			// Start reading from the first message of each assigned
-			// partition if there are no previously committed offsets
-			// for this group.
-			"auto.offset.reset": configYaml.AutoOffset,
-			// Whether or not we store offsets automatically.
-			"enable.auto.offset.store": false,
-		})
+
+		fmt.Println("Starting a new Sarama consumer")
+		sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
+		brokers := strings.Split(configYaml.BootstrapServers, ",") // convert string to slice/list
+		topics := strings.Split(configYaml.Topics, ",")            // convert string to slice/list
+
+		// 	config := sarama.NewConfig()
+		// 	config.ClientID = "go-kafka-consumer"
+		// 	config.Consumer.Return.Errors = true
+
+		//   brokers := []string{"localhost:9092"}
+		// // Create new consumer
+		// master, err := sarama.NewConsumer(brokers, config)
+		// if err != nil {
+		// 	panic(err)
+		// }
+
+		// sarama config
+		config := sarama.NewConfig()
+		config.Consumer.Offsets.AutoCommit.Enable = false // disable auto-commit
+		config.Net.SASL.Enable = false
+		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		config.Net.SASL.Mechanism = "PLAIN"
+		config.Net.SASL.User = configYaml.SaslUsername
+		config.Net.SASL.Password = configYaml.SaslPassword
+
+		consumer := consumer.CreateConsumer()
+
+		fmt.Printf("Brokers: %+v\n", brokers[0])
+		fmt.Printf("Group: %+v\n", configYaml.GroupID)
+		fmt.Printf("config: %+v\n", config)
+		client, err := sarama.NewConsumerGroup(brokers, configYaml.GroupID, config)
 		if err != nil {
-			fmt.Println("Failed to create consumer. ", err)
-			os.Exit(1)
+			fmt.Printf("InitConsumer: Error creating consumer group client: %v\n", err)
 		}
-		fmt.Println("Created Consumer. ", consumer)
+		ctx, cancel := context.WithCancel(context.Background())
 
-		topics := []string{configYaml.Topics}
-		err = consumer.SubscribeTopics(topics, nil)
+		consumptionIsPaused := false
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				// `Consume` should be called inside an infinite loop, when a
+				// server-side rebalance happens, the consumer session will need to be
+				// recreated to get the new claims
+				if err := client.Consume(ctx, topics, &consumer); err != nil {
+					fmt.Printf("InitConsumer: Error from consumer: %v", err)
+					fmt.Printf("Retrying to Connect Kafka in 30s...")
 
-		run := true
-		for run {
-			//fmt.Printf("waiting for kafka message\n")
+					connectionRetryInterval := time.Duration(30) * time.Second
+					time.Sleep(connectionRetryInterval)
+				}
+				// check if context was cancelled, signaling that the consumer should stop
+				if ctx.Err() != nil {
+					fmt.Printf("InitConsumer: Stopping Consumer")
+					return
+				}
+				consumer.Ready = make(chan bool)
+			}
+		}()
+
+		<-consumer.Ready // Await till the consumer has been set up
+		fmt.Println("Sarama consumer ready")
+
+		sigusr1 := make(chan os.Signal, 1)
+		signal.Notify(sigusr1, syscall.SIGUSR1)
+
+		sigterm := make(chan os.Signal, 1)
+		signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
+
+		// Run msg process in gorouting
+		go consumer.ProcessIngestMessages()
+
+		for keepRunning {
 			select {
-			case sig := <-sigchan:
-				fmt.Printf("Caught signal %v: terminating\n", sig)
-				run = false
-			default:
-				// Poll the consumer for messages or events
-				event := consumer.Poll(400)
-				if event == nil {
-					continue
-				}
-				switch e := event.(type) {
-				case *kafka.Message:
-					// Process the message received.
-					//fmt.Printf("Got a kafka message\n")
-					kafkaMessage := string(e.Value)
-					if configYaml.Timestamp {
-						timestamp := (time.Now()).UnixMilli()
-						metaDataTimestamp := e.Timestamp.UnixNano() //metadata timestamp
-						partition := e.TopicPartition
-						//Print Message with timestamp
-						fmt.Printf("%+v: %+v: %s %d %s\n", timestamp, partition, e.Key, metaDataTimestamp, kafkaMessage)
-						//fmt.Printf("%+v: %+v %s\n", timestamp, partition, e.Key) //Reduced output of keys only
-					} else {
-						fmt.Printf("%s\n", kafkaMessage) //Message in single string
-					}
-					if e.Headers != nil {
-						fmt.Printf("%% Headers: %v\n", e.Headers)
-					}
-					_, err := consumer.StoreMessage(e)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "%% Error storing offset after message %s:\n",
-							e.TopicPartition)
-					}
-				case kafka.Error:
-					// Errors are informational, the client will try to
-					// automatically recover.
-					fmt.Printf("%% Error: %v: %v\n", e.Code(), e)
-					if e.Code() == kafka.ErrAllBrokersDown {
-						fmt.Printf("Kafka error. All brokers down ")
-					}
-				default:
-					fmt.Printf("Ignored %v\n", e)
-				}
+			case <-ctx.Done():
+				fmt.Println("terminating: context cancelled")
+				keepRunning = false
+			case <-sigterm:
+				fmt.Println("terminating: via signal")
+				keepRunning = false
+			case <-sigusr1:
+				toggleConsumptionFlow(client, &consumptionIsPaused)
 			}
 		}
-	} else { //This is a producer
-		fmt.Printf("Kafka producer \n")
-		producer, err := kafka.NewProducer(&kafka.ConfigMap{
-			"bootstrap.servers": configYaml.BootstrapServers,
-			"sasl.mechanisms":   configYaml.SaslMechanisms,
-			"security.protocol": configYaml.SecurityProtocol,
-			"sasl.username":     configYaml.SaslUsername,
-			"sasl.password":     configYaml.SaslPassword,
-			"ssl.ca.location":   configYaml.SslCaLocation,
-			"client.id":         configYaml.GroupID,
-			"acks":              "all"})
-		if err != nil {
-			fmt.Printf("Failed to create producer: %s\n", err)
-			os.Exit(1)
-		}
-		fmt.Printf("Created Producer %v\n", producer)
-		defer producer.Close()
 
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("Kafka Producer")
-		fmt.Println("Insert/Paste JSON message and press enter")
-		fmt.Println("CTRL-C or CTRL-Z to cancel")
-		for {
-			fmt.Print("-> ")
-			text, _ := reader.ReadString('\n')
-			// convert CRLF to LF
-			text = strings.Replace(text, "\n", "", -1)
-			fmt.Println("Message to send: ", text)
-			// Convert string to serial byte format for transmission
-			bytes := []byte(text)
-			// Produce the message to the Kafka topic
-			err = produceMessage(producer, configYaml.Topics, bytes)
-			if err != nil {
-				fmt.Printf("Failed to produce message: %s\n", err)
-				return
-			}
-			fmt.Println("Message produced successfully!")
+		cancel() // close all consumers
+		fmt.Println("ctx cancelled")
+		wg.Wait()
+		if err = client.Close(); err != nil {
+			fmt.Printf("InitConsumer: Error closing client: %v", err)
 		}
 	}
 }
 
+func toggleConsumptionFlow(client sarama.ConsumerGroup, isPaused *bool) {
+	if *isPaused {
+		client.ResumeAll()
+		fmt.Println("toggleConsumptionFlow: Resuming consumption")
+	} else {
+		client.PauseAll()
+		fmt.Println("toggleConsumptionFlow: Pausing consumption")
+	}
+
+	*isPaused = !*isPaused
+}
+
 // configuration file kafka-config.yaml
 type Config struct {
-	Timestamp        bool   `yaml:"timestamp"`
-	Producer         bool   `yaml:"producer"`
-	BootstrapServers string `yaml:"bootstrap.servers"`
-	SaslMechanisms   string `yaml:"sasl.mechanisms"`
-	SecurityProtocol string `yaml:"security.protocol"`
-	SaslUsername     string `yaml:"sasl.username"`
-	SaslPassword     string `yaml:"sasl.password"`
-	SslCaLocation    string `yaml:"ssl.ca.location"`
-	GroupID          string `yaml:"group.id"`
-	Topics           string `yaml:"topics"`
-	AutoOffset       string `yaml:"auto.offset.reset"`
+	Timestamp         bool   `yaml:"timestamp"`
+	Producer          bool   `yaml:"producer"`
+	BootstrapServers  string `yaml:"bootstrap.servers"`
+	SaslMechanisms    string `yaml:"sasl.mechanisms"`
+	SecurityProtocol  string `yaml:"security.protocol"`
+	SaslUsername      string `yaml:"sasl.username"`
+	SaslPassword      string `yaml:"sasl.password"`
+	SslCaLocation     string `yaml:"ssl.ca.location"`
+	GroupID           string `yaml:"group.id"`
+	Topics            string `yaml:"topics"`
+	AutoOffset        string `yaml:"auto.offset.reset"`
+	PartitionStrategy string `yaml:"partition.assignment.strategy"`
 }
 
 // Function to read text file return byteResult
@@ -174,30 +172,4 @@ func ReadFile(fileName string) []byte {
 	byteResult, _ := io.ReadAll(file)
 	file.Close()
 	return byteResult
-}
-
-func produceMessage(p *kafka.Producer, topic string, message []byte) error {
-	// Create a new Kafka message to be produced
-	kafkaMessage := &kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Value:          message,
-		Key:            []byte("myKey"),
-	}
-	// Produce the Kafka message
-	deliveryChan := make(chan kafka.Event)
-	err := p.Produce(kafkaMessage, deliveryChan)
-	if err != nil {
-		return fmt.Errorf("failed to produce message: %w", err)
-	}
-	// Wait for delivery report or error
-	e := <-deliveryChan
-	m := e.(*kafka.Message)
-	// Check for delivery errors
-	if m.TopicPartition.Error != nil {
-		return fmt.Errorf("delivery failed: %s", m.TopicPartition.Error)
-	}
-	// Close the delivery channel
-	close(deliveryChan)
-
-	return nil
 }
