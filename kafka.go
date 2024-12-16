@@ -1,24 +1,34 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"gopkg.in/yaml.v2"
 )
 
-// Version 0.7
+// Version sarama
 const config_file = "kafka-config.yaml"
 
+// Sarama configuration options
+var (
+	brokers  = ""
+	version  = ""
+	group    = ""
+	topics   = ""
+	assignor = ""
+	oldest   = true
+	verbose  = false
+)
+
 func main() {
-	fmt.Println("kafka application v0.5")
+	fmt.Println("kafka sarama application v0.1")
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -31,6 +41,42 @@ func main() {
 		fmt.Println("kafka-config.yaml Unmarshall error", err)
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
+
+	keepRunning := true
+	fmt.Println("Starting a new Sarama consumer")
+
+	version, err := sarama.ParseKafkaVersion(version)
+	if err != nil {
+		fmt.Printf("Error parsing Kafka version: %v", err)
+	}
+	/**
+	 * Construct a new Sarama configuration.
+	 * The Kafka cluster version has to be defined before the consumer/producer is initialized.
+	 */
+	config := sarama.NewConfig()
+	config.Version = version
+
+	switch configYaml.PartitionStrategy {
+	case "sticky":
+		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategySticky()}
+	case "roundrobin":
+		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
+	case "range":
+		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRange()}
+	default:
+		fmt.Printf("Unrecognized consumer group partition assignor: %s", assignor)
+	}
+
+	if configYaml.AutoOffset == "oldest" {
+		config.Consumer.Offsets.Initial = sarama.OffsetOldest
+	}
+
+	/**
+	 * Setup a new Sarama consumer group
+	 */
+	consumer := Consumer{
+		ready: make(chan bool),
+	}
 
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
@@ -109,44 +155,6 @@ func main() {
 				}
 			}
 		}
-	} else { //This is a producer
-		fmt.Printf("Kafka producer \n")
-		producer, err := kafka.NewProducer(&kafka.ConfigMap{
-			"bootstrap.servers": configYaml.BootstrapServers,
-			"sasl.mechanisms":   configYaml.SaslMechanisms,
-			"security.protocol": configYaml.SecurityProtocol,
-			"sasl.username":     configYaml.SaslUsername,
-			"sasl.password":     configYaml.SaslPassword,
-			"ssl.ca.location":   configYaml.SslCaLocation,
-			"client.id":         configYaml.GroupID,
-			"acks":              "all"})
-		if err != nil {
-			fmt.Printf("Failed to create producer: %s\n", err)
-			os.Exit(1)
-		}
-		fmt.Printf("Created Producer %v\n", producer)
-		defer producer.Close()
-
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("Kafka Producer")
-		fmt.Println("Insert/Paste JSON message and press enter")
-		fmt.Println("CTRL-C or CTRL-Z to cancel")
-		for {
-			fmt.Print("-> ")
-			text, _ := reader.ReadString('\n')
-			// convert CRLF to LF
-			text = strings.Replace(text, "\n", "", -1)
-			fmt.Println("Message to send: ", text)
-			// Convert string to serial byte format for transmission
-			bytes := []byte(text)
-			// Produce the message to the Kafka topic
-			err = produceMessage(producer, configYaml.Topics, bytes)
-			if err != nil {
-				fmt.Printf("Failed to produce message: %s\n", err)
-				return
-			}
-			fmt.Println("Message produced successfully!")
-		}
 	}
 }
 
@@ -176,30 +184,4 @@ func ReadFile(fileName string) []byte {
 	byteResult, _ := io.ReadAll(file)
 	file.Close()
 	return byteResult
-}
-
-func produceMessage(p *kafka.Producer, topic string, message []byte) error {
-	// Create a new Kafka message to be produced
-	kafkaMessage := &kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Value:          message,
-		Key:            []byte("myKey"),
-	}
-	// Produce the Kafka message
-	deliveryChan := make(chan kafka.Event)
-	err := p.Produce(kafkaMessage, deliveryChan)
-	if err != nil {
-		return fmt.Errorf("failed to produce message: %w", err)
-	}
-	// Wait for delivery report or error
-	e := <-deliveryChan
-	m := e.(*kafka.Message)
-	// Check for delivery errors
-	if m.TopicPartition.Error != nil {
-		return fmt.Errorf("delivery failed: %s", m.TopicPartition.Error)
-	}
-	// Close the delivery channel
-	close(deliveryChan)
-
-	return nil
 }
