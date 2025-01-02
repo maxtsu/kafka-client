@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -53,6 +55,26 @@ func main() {
 	 * Construct a new Sarama configuration.
 	 * The Kafka cluster version has to be defined before the consumer/producer is initialized.
 	 */
+
+	config := sarama.NewConfig()
+	config.Version = sarama.V2_0_0_0                  // specify appropriate Kafka version
+	config.Consumer.Offsets.AutoCommit.Enable = false // disable auto-commit
+
+	consumerGroup, err := sarama.NewConsumerGroup(brokers, groupID, config)
+	if err != nil {
+		log.Panicf("Error creating consumer group client: %v", err)
+	}
+
+	consumer := Consumer{}
+	ctx := context.Background()
+
+	for {
+		err := consumerGroup.Consume(ctx, []string{topic}, consumer)
+		if err != nil {
+			log.Panicf("Error from consumer: %v", err)
+		}
+	}
+
 	config := sarama.NewConfig()
 	config.Version = version
 
