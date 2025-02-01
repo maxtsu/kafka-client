@@ -3,7 +3,8 @@
 #timestamp: Yes
 #producer: Yes
 producer: No
-bootstrap.servers: "10.53.37.73:9092"
+#bootstrap.servers: "10.53.37.73:9092"
+bootstrap.servers: "ilayer-kafka-0-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-1-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-2-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-3-dev1-0.gnf.test.btnetwork.co.uk:9092"
 sasl.mechanisms: "PLAIN"
 security.protocol: "SASL_PLAINTEXT"
 sasl.username: "user"
@@ -14,3 +15,4 @@ topics: "gnf.network.telemetry"
 #auto.offset.reset: "earliest"
 auto.offset.reset: "latest"
 partition.assignment.strategy: "range"
+number.consumers: 4
