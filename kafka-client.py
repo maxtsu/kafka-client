@@ -51,7 +51,7 @@ def consumer(id):
             print("Unsubscribe and close kafka consumer {}".format(id))
             consumer.unsubscribe()
             consumer.close()
-    run = False
+    kill_signal = False # Kill other consumers
 
 with ThreadPoolExecutor(max_workers=number_consumers) as executor:
         executor.map(consumer, range(number_consumers))
