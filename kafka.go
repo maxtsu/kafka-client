@@ -4,39 +4,28 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/signal"
+	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/gologme/log"
 	"gopkg.in/yaml.v2"
 )
 
 // Version sarama
 const config_file = "kafka-config.yaml"
 
-// Sarama configuration options
-var (
-	brokers  = ""
-	version  = ""
-	group    = ""
-	topics   = ""
-	assignor = ""
-	oldest   = true
-	verbose  = false
-)
-
 func main() {
 	fmt.Println("kafka sarama application v0.1")
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Rad the config file
+	// Read the config file
 	byteResult := ReadFile(config_file)
-
 	var configYaml Config
 	err := yaml.Unmarshal(byteResult, &configYaml)
 	if err != nil {
@@ -44,139 +33,60 @@ func main() {
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
 
-	keepRunning := true
-	fmt.Println("Starting a new Sarama consumer")
-
-	version, err := sarama.ParseKafkaVersion(version)
-	if err != nil {
-		fmt.Printf("Error parsing Kafka version: %v", err)
-	}
-	/**
-	 * Construct a new Sarama configuration.
-	 * The Kafka cluster version has to be defined before the consumer/producer is initialized.
-	 */
-
-	config := sarama.NewConfig()
-	config.Version = sarama.V2_0_0_0                  // specify appropriate Kafka version
-	config.Consumer.Offsets.AutoCommit.Enable = false // disable auto-commit
-
-	consumerGroup, err := sarama.NewConsumerGroup(brokers, groupID, config)
-	if err != nil {
-		log.Panicf("Error creating consumer group client: %v", err)
-	}
-
-	consumer := Consumer{}
-	ctx := context.Background()
-
-	for {
-		err := consumerGroup.Consume(ctx, []string{topic}, consumer)
-		if err != nil {
-			log.Panicf("Error from consumer: %v", err)
-		}
-	}
-
-	config := sarama.NewConfig()
-	config.Version = version
-
-	switch configYaml.PartitionStrategy {
-	case "sticky":
-		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategySticky()}
-	case "roundrobin":
-		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
-	case "range":
-		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRange()}
-	default:
-		fmt.Printf("Unrecognized consumer group partition assignor: %s", assignor)
-	}
-
-	if configYaml.AutoOffset == "oldest" {
-		config.Consumer.Offsets.Initial = sarama.OffsetOldest
-	}
-
-	/**
-	 * Setup a new Sarama consumer group
-	 */
-	consumer := Consumer{
-		ready: make(chan bool),
-	}
-
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
-		// Create kafka consumer configuration for kafkaCfg
-		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-			"bootstrap.servers":  configYaml.BootstrapServers,
-			"sasl.mechanisms":    configYaml.SaslMechanisms,
-			"security.protocol":  configYaml.SecurityProtocol,
-			"sasl.username":      configYaml.SaslUsername,
-			"sasl.password":      configYaml.SaslPassword,
-			"ssl.ca.location":    configYaml.SslCaLocation,
-			"group.id":           configYaml.GroupID,
-			"session.timeout.ms": 6000,
-			// Start reading from the first message of each assigned
-			// partition if there are no previously committed offsets
-			// for this group.
-			"auto.offset.reset": configYaml.AutoOffset,
-			// Whether or not we store offsets automatically.
-			"enable.auto.offset.store":      false,
-			"partition.assignment.strategy": configYaml.PartitionStrategy,
-		})
+
+		//keepRunning := true
+		fmt.Println("Starting a new Sarama consumer")
+
+		// sarama config
+		config := sarama.NewConfig()
+		config.Consumer.Offsets.AutoCommit.Enable = false          // disable auto-commit
+		brokers := strings.Split(configYaml.BootstrapServers, ",") // convert string to slice/list
+		topics := strings.Split(configYaml.Topics, ",")            // convert string to slice/list
+
+		// // Create new consumer
+		// consumer, err := sarama.NewConsumerGroup(brokers, configYaml.GroupID, config)
+		// if err != nil {
+		// 	log.Panicf("Error creating consumer group client: %v", err)
+		// }
+
+		/**
+		 * Setup a new Sarama consumer group
+		 */
+		consumer := Consumer{
+			ready: make(chan bool),
+			//clientID:    clientID,
+			//processFunc: processFunc,
+			processChan: make(chan *sarama.ConsumerMessage, 1000),
+		}
+
+		client, err := sarama.NewConsumerGroup(brokers, configYaml.GroupID, config)
 		if err != nil {
-			fmt.Println("Failed to create consumer. ", err)
-			os.Exit(1)
+			fmt.Printf("InitConsumer: Error creating consumer group client: %v", err)
 		}
-		fmt.Println("Created Consumer. ", consumer)
-
-		topics := []string{configYaml.Topics}
-		err = consumer.SubscribeTopics(topics, nil)
-
-		run := true
-		for run {
-			//fmt.Printf("waiting for kafka message\n")
-			select {
-			case sig := <-sigchan:
-				fmt.Printf("Caught signal %v: terminating\n", sig)
-				run = false
-			default:
-				// Poll the consumer for messages or events
-				event := consumer.Poll(400)
-				if event == nil {
-					continue
+		ctx, cancel := context.WithCancel(context.Background())
+		consumptionIsPaused := false
+		wg := &sync.WaitGroup{}
+		go func() {
+			defer wg.Done()
+			for {
+				// `Consume` should be called inside an infinite loop, when a
+				// server-side rebalance happens, the consumer session will need to be
+				// recreated to get the new claims
+				if err := client.Consume(ctx, topics, &consumer); err != nil {
+					fmt.Printf("InitConsumer: Error from consumer: %v", err)
+					fmt.Printf("Retrying to Connect Kafka in 30s...")
+					time.Sleep(connectionRetryInterval)
 				}
-				switch e := event.(type) {
-				case *kafka.Message:
-					// Process the message received.
-					//fmt.Printf("Got a kafka message\n")
-					kafkaMessage := string(e.Value)
-					if configYaml.Timestamp {
-						timestamp := (time.Now()).UnixMilli()
-						metaDataTimestamp := e.Timestamp.UnixNano() //metadata timestamp
-						partition := e.TopicPartition
-						//Print Message with timestamp
-						fmt.Printf("%+v: %+v: %s %d %s\n", timestamp, partition, e.Key, metaDataTimestamp, kafkaMessage)
-						//fmt.Printf("%+v: %+v %s\n", timestamp, partition, e.Key) //Reduced output of keys only
-					} else {
-						fmt.Printf("%s\n", kafkaMessage) //Message in single string
-					}
-					if e.Headers != nil {
-						fmt.Printf("%% Headers: %v\n", e.Headers)
-					}
-					_, err := consumer.StoreMessage(e)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "%% Error storing offset after message %s:\n",
-							e.TopicPartition)
-					}
-				case kafka.Error:
-					// Errors are informational, the client will try to
-					// automatically recover.
-					fmt.Printf("%% Error: %v: %v\n", e.Code(), e)
-					if e.Code() == kafka.ErrAllBrokersDown {
-						fmt.Printf("Kafka error. All brokers down ")
-					}
-				default:
-					fmt.Printf("Ignored %v\n", e)
+				// check if context was cancelled, signaling that the consumer should stop
+				if ctx.Err() != nil {
+					log.Errorln("InitConsumer: Stopping Consumer")
+					return
 				}
+				consumer.ready = make(chan bool)
 			}
-		}
+		}()
 	}
 }
 
@@ -194,6 +104,17 @@ type Config struct {
 	Topics            string `yaml:"topics"`
 	AutoOffset        string `yaml:"auto.offset.reset"`
 	PartitionStrategy string `yaml:"partition.assignment.strategy"`
+}
+
+// Consumer represents a Sarama consumer group consumer
+type Consumer struct {
+	ready    chan bool
+	clientID string
+	session  sarama.ConsumerGroupSession
+	// buffered channel to hold messages pulled from kafka
+	processChan chan *sarama.ConsumerMessage
+	// Function to process consumed messages
+	//  ===> processFunc func(*config.AntWorkItemT, bool)
 }
 
 // Function to read text file return byteResult
