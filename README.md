@@ -11,3 +11,4 @@ In producer more messages are pasted to console
 * 09/12/2024 v.05 added metadata timestamp
 * 11/12/2024 v0.6 added key to producer
 * 12/12/2024 v0.7 added partition strategy
+* 2025 v0.8 included prometheus metrics
