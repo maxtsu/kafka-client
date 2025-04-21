@@ -17,7 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Version sarama
+// Version sarama v1.2
 const config_file = "kafka-config.yaml"
 
 func main() {
