@@ -68,11 +68,11 @@ func main() {
 		// Start multiple consumer workers
 		for id := range 2 {
 			cgroup_wg.Add(1)
-			go consumerWorker(id, config, configYaml)
+			go consumerWorker(id, cgroup_wg, config, configYaml)
 		}
 
-		fmt.Println("Before cgroup_wg Done")
-		cgroup_wg.Done()
+		// fmt.Println("Before cgroup_wg Done")
+		// cgroup_wg.Done()
 		//point consumer is finished
 		fmt.Println("Just before cg_group wait")
 		cgroup_wg.Wait()
@@ -120,7 +120,8 @@ func ReadFile(fileName string) []byte {
 	return byteResult
 }
 
-func consumerWorker(id int, config *sarama.Config, configYaml Config) {
+func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configYaml Config) {
+	defer c_wg.Done()
 	brokers := strings.Split(configYaml.BootstrapServers, ",") // convert string to slice/list
 	topics := strings.Split(configYaml.Topics, ",")            // convert string to slice/list
 	keepRunning := true
@@ -151,11 +152,11 @@ func consumerWorker(id int, config *sarama.Config, configYaml Config) {
 			}
 			// check if context was cancelled, signaling that the consumer should stop
 			if ctx.Err() != nil {
-				fmt.Printf("Consumer: %d Stopping Consumer", id)
+				fmt.Printf("Consumer: %d Stopping Consumer\n", id)
 				return
 			}
 			consumer.Ready = make(chan bool)
-			fmt.Printf("Consumer: %d Post-consumer.Ready", id)
+			fmt.Printf("Consumer: %d Post-consumer.Ready\n", id)
 		}
 	}()
 
