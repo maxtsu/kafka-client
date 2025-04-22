@@ -20,9 +20,10 @@ import (
 // Version sarama v1.2
 const config_file = "kafka-config.yaml"
 
+var keepRunning bool
+
 func main() {
 	fmt.Println("kafka sarama application v0.1")
-	// keepRunning := true
 
 	// Read the config file
 	byteResult := ReadFile(config_file)
@@ -66,6 +67,7 @@ func main() {
 		// consumerWorker(id, config, configYaml)
 
 		// Start multiple consumer workers
+		keepRunning = true
 		for id := range 5 {
 			cgroup_wg.Add(1)
 			go consumerWorker(id, cgroup_wg, config, configYaml)
@@ -124,7 +126,7 @@ func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configY
 	defer c_wg.Done()
 	brokers := strings.Split(configYaml.BootstrapServers, ",") // convert string to slice/list
 	topics := strings.Split(configYaml.Topics, ",")            // convert string to slice/list
-	keepRunning := true
+	// keepRunning := true
 
 	consumer := consumer.CreateConsumer(id)
 
