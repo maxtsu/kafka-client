@@ -143,7 +143,7 @@ func consumerWorker(id int, config *sarama.Config, configYaml Config) {
 			// server-side rebalance happens, the consumer session will need to be
 			// recreated to get the new claims
 			if err := client.Consume(ctx, topics, &consumer); err != nil {
-				fmt.Printf("Consumer: %d InitConsumer: Error from consumer: %v", id, err)
+				fmt.Printf("Consumer: %d Error from consumer: %v", id, err)
 				fmt.Printf("Consumer: %d Retrying to Connect Kafka in 30s...", id)
 
 				connectionRetryInterval := time.Duration(30) * time.Second
@@ -151,10 +151,11 @@ func consumerWorker(id int, config *sarama.Config, configYaml Config) {
 			}
 			// check if context was cancelled, signaling that the consumer should stop
 			if ctx.Err() != nil {
-				fmt.Printf("Consumer: %d InitConsumer: Stopping Consumer", id)
+				fmt.Printf("Consumer: %d Stopping Consumer", id)
 				return
 			}
 			consumer.Ready = make(chan bool)
+			fmt.Printf("Consumer: %d Post-consumer.Ready", id)
 		}
 	}()
 
@@ -189,4 +190,5 @@ func consumerWorker(id int, config *sarama.Config, configYaml Config) {
 	if err = client.Close(); err != nil {
 		fmt.Printf("Consumer: %d InitConsumer: Error closing client: %v\n", id, err)
 	}
+	fmt.Printf("Consumer: %d completed terminated function\n", id)
 }
