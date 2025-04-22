@@ -22,7 +22,7 @@ const config_file = "kafka-config.yaml"
 
 func main() {
 	fmt.Println("kafka sarama application v0.1")
-	keepRunning := true
+	// keepRunning := true
 
 	// Read the config file
 	byteResult := ReadFile(config_file)
@@ -41,8 +41,8 @@ func main() {
 
 		fmt.Println("Starting a new Sarama consumer")
 		sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
-		brokers := strings.Split(configYaml.BootstrapServers, ",") // convert string to slice/list
-		topics := strings.Split(configYaml.Topics, ",")            // convert string to slice/list
+		// brokers := strings.Split(configYaml.BootstrapServers, ",") // convert string to slice/list
+		// topics := strings.Split(configYaml.Topics, ",")            // convert string to slice/list
 
 		// sarama config
 		config := sarama.NewConfig()
