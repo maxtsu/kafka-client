@@ -72,10 +72,11 @@ func main() {
 
 		consumptionIsPaused := false
 		wg := &sync.WaitGroup{}
-		wg.Add(1)
 
-		id := 1
-		consumerWorker(id, client, topics, consumer, ctx, wg, keepRunning, consumptionIsPaused)
+		for id := range 2 {
+			wg.Add(1)
+			go consumerWorker(id, client, topics, consumer, ctx, wg, keepRunning, consumptionIsPaused)
+		}
 
 		// go func() {
 		// 	defer wg.Done()
@@ -174,7 +175,7 @@ func ReadFile(fileName string) []byte {
 }
 
 func consumerWorker(id int, client sarama.ConsumerGroup, topics []string, consumer consumer.Consumer, ctx context.Context, wg *sync.WaitGroup, keepRunning bool, consumptionIsPaused bool) {
-	fmt.Printf("Starting consumer %d", id)
+	fmt.Printf("Starting consumer %d\n", id)
 	go func() {
 		defer wg.Done()
 		for {
