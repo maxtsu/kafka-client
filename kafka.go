@@ -20,8 +20,6 @@ import (
 // Version sarama v1.2
 const config_file = "kafka-config.yaml"
 
-var keepRunning bool
-
 func main() {
 	fmt.Println("kafka sarama application v0.1")
 
@@ -63,9 +61,8 @@ func main() {
 		cgroup_wg := &sync.WaitGroup{}
 		// point new consumer is created
 		// Start multiple consumer workers
-		keepRunning = true
 		ctx, cancel := context.WithCancel(context.Background())
-		//_, cancel := context.WithCancel(context.Background())
+
 		for id := range 5 {
 			cWorker := consumeWork{
 				id:         id,
@@ -130,7 +127,7 @@ func (c *consumeWork) consumerWorker() {
 	defer c.c_wg.Done()
 	brokers := strings.Split(c.configYaml.BootstrapServers, ",") // convert string to slice/list
 	topics := strings.Split(c.configYaml.Topics, ",")            // convert string to slice/list
-	// keepRunning := true
+	keepRunning := true
 
 	consumer := consumer.CreateConsumer(c.id)
 
@@ -138,9 +135,7 @@ func (c *consumeWork) consumerWorker() {
 	if err != nil {
 		fmt.Printf("InitConsumer %d: Error creating consumer group client: %v\n", c.id, err)
 	}
-	//ctx, cancel := context.WithCancel(context.Background())
 
-	// consumptionIsPaused := false
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -175,10 +170,6 @@ func (c *consumeWork) consumerWorker() {
 	// Run msg process in gorouting
 	go consumer.ProcessIngestMessages()
 
-	// Testing kill signal
-	k := make(chan bool)
-	go kill(c.id, k)
-
 	for keepRunning {
 		select {
 		case <-c.ctx.Done():
@@ -187,12 +178,8 @@ func (c *consumeWork) consumerWorker() {
 		case <-sigterm:
 			fmt.Printf("Consumer: %d terminating: via signal\n", c.id)
 			keepRunning = false
-		case <-k: //testing
-			fmt.Printf("Consumer: %d got kill signal\n", c.id)
-			keepRunning = false
 		}
 	}
-
 	c.cancel() // close all consumers
 	fmt.Printf("Consumer: %d ctx cancelled\n", c.id)
 	wg.Wait()
@@ -200,13 +187,4 @@ func (c *consumeWork) consumerWorker() {
 		fmt.Printf("Consumer: %d InitConsumer: Error closing client: %v\n", c.id, err)
 	}
 	fmt.Printf("Consumer: %d completed terminated function\n", c.id)
-}
-
-func kill(id int, kill chan bool) {
-	fmt.Printf("Consumer: %d kill channel\n", id)
-	time.Sleep(4 * time.Second)
-	if id == 3 {
-		fmt.Printf("Consumer: %d going to die!\n", id)
-		kill <- true
-	}
 }
