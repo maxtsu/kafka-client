@@ -44,23 +44,18 @@ func main() {
 		brokers := strings.Split(configYaml.BootstrapServers, ",") // convert string to slice/list
 		topics := strings.Split(configYaml.Topics, ",")            // convert string to slice/list
 
-		// 	config := sarama.NewConfig()
-		// 	config.ClientID = "go-kafka-consumer"
-		// 	config.Consumer.Return.Errors = true
-
-		//   brokers := []string{"localhost:9092"}
-		// // Create new consumer
-		// master, err := sarama.NewConsumer(brokers, config)
-		// if err != nil {
-		// 	panic(err)
-		// }
-
 		// sarama config
 		config := sarama.NewConfig()
 		config.Consumer.Offsets.AutoCommit.Enable = false // disable auto-commit
 		config.Net.SASL.Enable = false
-		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-		config.Net.SASL.Mechanism = "PLAIN"
+		switch configYaml.SaslMechanisms {
+		case "PLAIN": // SASLTypePlaintext represents the SASL/PLAIN mechanism
+			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		case "OAUTHBEARER":
+			config.Net.SASL.Mechanism = sarama.SASLTypeOAuth
+		default:
+			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		}
 		config.Net.SASL.User = configYaml.SaslUsername
 		config.Net.SASL.Password = configYaml.SaslPassword
 
@@ -109,8 +104,15 @@ func main() {
 		sigterm := make(chan os.Signal, 1)
 		signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
 
-		// Run msg process in gorouting
-		go consumer.ProcessIngestMessages()
+		// // Run msg process in gorouting
+		// go consumer.ProcessIngestMessages()
+
+		// Start the ingest processors
+		NoOfConsumerGoRoutines := 3
+
+		for i := 0; i < int(NoOfConsumerGoRoutines); i++ {
+			go consumer.ProcessIngestMessages()
+		}
 
 		for keepRunning {
 			select {
