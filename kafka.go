@@ -66,7 +66,7 @@ func main() {
 		// consumerWorker(id, config, configYaml)
 
 		// Start multiple consumer workers
-		for id := range 10 {
+		for id := range 5 {
 			cgroup_wg.Add(1)
 			go consumerWorker(id, cgroup_wg, config, configYaml)
 		}
@@ -184,6 +184,9 @@ func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configY
 		case <-sigterm:
 			fmt.Printf("Consumer: %d terminating: via signal\n", id)
 			keepRunning = false
+		case <-k:
+			fmt.Printf("Consumer: %d got kill signal\n", id)
+			keepRunning = false
 			// case <-sigusr1:
 			// 	toggleConsumptionFlow(client, &consumptionIsPaused)
 		}
@@ -200,4 +203,9 @@ func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configY
 
 func kill(id int, kill chan bool) {
 	fmt.Printf("Consumer: %d kill channel\n", id)
+	time.Sleep(4 * time.Second)
+	if id == 3 {
+		fmt.Printf("Consumer: %d going to die!\n", id)
+		kill <- true
+	}
 }
