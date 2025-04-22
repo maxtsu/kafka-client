@@ -80,17 +80,17 @@ func main() {
 	}
 }
 
-func toggleConsumptionFlow(client sarama.ConsumerGroup, isPaused *bool) {
-	if *isPaused {
-		client.ResumeAll()
-		fmt.Println("toggleConsumptionFlow: Resuming consumption")
-	} else {
-		client.PauseAll()
-		fmt.Println("toggleConsumptionFlow: Pausing consumption")
-	}
+// func toggleConsumptionFlow(client sarama.ConsumerGroup, isPaused *bool) {
+// 	if *isPaused {
+// 		client.ResumeAll()
+// 		fmt.Println("toggleConsumptionFlow: Resuming consumption")
+// 	} else {
+// 		client.PauseAll()
+// 		fmt.Println("toggleConsumptionFlow: Pausing consumption")
+// 	}
 
-	*isPaused = !*isPaused
-}
+// 	*isPaused = !*isPaused
+// }
 
 // configuration file kafka-config.yaml
 type Config struct {
@@ -134,7 +134,7 @@ func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configY
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	consumptionIsPaused := false
+	// consumptionIsPaused := false
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -163,14 +163,18 @@ func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configY
 	<-consumer.Ready // Await till the consumer has been set up
 	fmt.Printf("Consumer: %d Sarama consumer ready\n", id)
 
-	sigusr1 := make(chan os.Signal, 1)
-	signal.Notify(sigusr1, syscall.SIGUSR1)
+	// sigusr1 := make(chan os.Signal, 1)
+	// signal.Notify(sigusr1, syscall.SIGUSR1)
 
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
 
 	// Run msg process in gorouting
 	go consumer.ProcessIngestMessages()
+
+	// Testing kill signal
+	k := make(chan bool)
+	go kill(id, k)
 
 	for keepRunning {
 		select {
@@ -180,8 +184,8 @@ func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configY
 		case <-sigterm:
 			fmt.Printf("Consumer: %d terminating: via signal\n", id)
 			keepRunning = false
-		case <-sigusr1:
-			toggleConsumptionFlow(client, &consumptionIsPaused)
+			// case <-sigusr1:
+			// 	toggleConsumptionFlow(client, &consumptionIsPaused)
 		}
 	}
 
@@ -192,4 +196,8 @@ func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configY
 		fmt.Printf("Consumer: %d InitConsumer: Error closing client: %v\n", id, err)
 	}
 	fmt.Printf("Consumer: %d completed terminated function\n", id)
+}
+
+func kill(id int, kill chan bool) {
+	fmt.Printf("Consumer: %d kill channel\n", id)
 }
