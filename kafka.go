@@ -62,37 +62,29 @@ func main() {
 
 		cgroup_wg := &sync.WaitGroup{}
 		// point new consumer is created
-		// id := 0
-		// cgroup_wg.Add(1)
-		// consumerWorker(id, config, configYaml)
-
 		// Start multiple consumer workers
 		keepRunning = true
+		_, cancel := context.WithCancel(context.Background())
 		for id := range 5 {
+			cWorker := consumeWork{
+				id:          id,
+				cancel_kill: cancel,
+				c_wg:        cgroup_wg,
+				config:      config,
+				configYaml:  configYaml,
+			}
+
 			cgroup_wg.Add(1)
-			go consumerWorker(id, cgroup_wg, config, configYaml)
+			go cWorker.consumerWorker()
+			//go consumerWorker(id, cgroup_wg, config, configYaml)
 		}
 
-		// fmt.Println("Before cgroup_wg Done")
-		// cgroup_wg.Done()
 		//point consumer is finished
 		fmt.Println("Just before cg_group wait")
 		cgroup_wg.Wait()
 		fmt.Println("completely at the End")
 	}
 }
-
-// func toggleConsumptionFlow(client sarama.ConsumerGroup, isPaused *bool) {
-// 	if *isPaused {
-// 		client.ResumeAll()
-// 		fmt.Println("toggleConsumptionFlow: Resuming consumption")
-// 	} else {
-// 		client.PauseAll()
-// 		fmt.Println("toggleConsumptionFlow: Pausing consumption")
-// 	}
-
-// 	*isPaused = !*isPaused
-// }
 
 // configuration file kafka-config.yaml
 type Config struct {
@@ -122,17 +114,26 @@ func ReadFile(fileName string) []byte {
 	return byteResult
 }
 
-func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configYaml Config) {
-	defer c_wg.Done()
-	brokers := strings.Split(configYaml.BootstrapServers, ",") // convert string to slice/list
-	topics := strings.Split(configYaml.Topics, ",")            // convert string to slice/list
+type consumeWork struct {
+	id          int
+	cancel_kill context.CancelFunc
+	c_wg        *sync.WaitGroup
+	config      *sarama.Config
+	configYaml  Config
+}
+
+func (c *consumeWork) consumerWorker() {
+	//func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configYaml Config) {
+	defer c.c_wg.Done()
+	brokers := strings.Split(c.configYaml.BootstrapServers, ",") // convert string to slice/list
+	topics := strings.Split(c.configYaml.Topics, ",")            // convert string to slice/list
 	// keepRunning := true
 
-	consumer := consumer.CreateConsumer(id)
+	consumer := consumer.CreateConsumer(c.id)
 
-	client, err := sarama.NewConsumerGroup(brokers, configYaml.GroupID, config)
+	client, err := sarama.NewConsumerGroup(brokers, c.configYaml.GroupID, c.config)
 	if err != nil {
-		fmt.Printf("InitConsumer %d: Error creating consumer group client: %v\n", id, err)
+		fmt.Printf("InitConsumer %d: Error creating consumer group client: %v\n", c.id, err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -146,27 +147,24 @@ func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configY
 			// server-side rebalance happens, the consumer session will need to be
 			// recreated to get the new claims
 			if err := client.Consume(ctx, topics, &consumer); err != nil {
-				fmt.Printf("Consumer: %d Error from consumer: %v", id, err)
-				fmt.Printf("Consumer: %d Retrying to Connect Kafka in 30s...", id)
+				fmt.Printf("Consumer: %d Error from consumer: %v", c.id, err)
+				fmt.Printf("Consumer: %d Retrying to Connect Kafka in 30s...", c.id)
 
 				connectionRetryInterval := time.Duration(30) * time.Second
 				time.Sleep(connectionRetryInterval)
 			}
 			// check if context was cancelled, signaling that the consumer should stop
 			if ctx.Err() != nil {
-				fmt.Printf("Consumer: %d Stopping Consumer\n", id)
+				fmt.Printf("Consumer: %d Stopping Consumer\n", c.id)
 				return
 			}
 			consumer.Ready = make(chan bool)
-			fmt.Printf("Consumer: %d Post-consumer.Ready\n", id)
+			fmt.Printf("Consumer: %d Post-consumer.Ready\n", c.id)
 		}
 	}()
 
 	<-consumer.Ready // Await till the consumer has been set up
-	fmt.Printf("Consumer: %d Sarama consumer ready\n", id)
-
-	// sigusr1 := make(chan os.Signal, 1)
-	// signal.Notify(sigusr1, syscall.SIGUSR1)
+	fmt.Printf("Consumer: %d Sarama consumer ready\n", c.id)
 
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
@@ -176,31 +174,29 @@ func consumerWorker(id int, c_wg *sync.WaitGroup, config *sarama.Config, configY
 
 	// Testing kill signal
 	k := make(chan bool)
-	go kill(id, k)
+	go kill(c.id, k)
 
 	for keepRunning {
 		select {
 		case <-ctx.Done():
-			fmt.Printf("Consumer: %d terminating: context cancelled\n", id)
+			fmt.Printf("Consumer: %d terminating: context cancelled\n", c.id)
 			keepRunning = false
 		case <-sigterm:
-			fmt.Printf("Consumer: %d terminating: via signal\n", id)
+			fmt.Printf("Consumer: %d terminating: via signal\n", c.id)
 			keepRunning = false
-		case <-k:
-			fmt.Printf("Consumer: %d got kill signal\n", id)
+		case <-k: //testing
+			fmt.Printf("Consumer: %d got kill signal\n", c.id)
 			keepRunning = false
-			// case <-sigusr1:
-			// 	toggleConsumptionFlow(client, &consumptionIsPaused)
 		}
 	}
 
 	cancel() // close all consumers
-	fmt.Printf("Consumer: %d ctx cancelled\n", id)
+	fmt.Printf("Consumer: %d ctx cancelled\n", c.id)
 	wg.Wait()
 	if err = client.Close(); err != nil {
-		fmt.Printf("Consumer: %d InitConsumer: Error closing client: %v\n", id, err)
+		fmt.Printf("Consumer: %d InitConsumer: Error closing client: %v\n", c.id, err)
 	}
-	fmt.Printf("Consumer: %d completed terminated function\n", id)
+	fmt.Printf("Consumer: %d completed terminated function\n", c.id)
 }
 
 func kill(id int, kill chan bool) {
