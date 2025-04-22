@@ -34,9 +34,6 @@ func (consumer *Consumer) Setup(session sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready
 	close(consumer.Ready)
 	fmt.Println("Setup ", "memberid ", session.MemberID(), "sessionid ", session.GenerationID(), "claims ", session.Claims())
-	// for i := 0; i < int(NoOfConsumerGoRoutines); i++ {
-	// 	go consumer.processKafkaMessages()
-	// }
 	return nil
 }
 
@@ -54,6 +51,7 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 	// The `ConsumeClaim` itself is called within a goroutine, see:
 	// https://github.com/Shopify/sarama/blob/main/consumer_group.go#L27-L29
 	consumer.session = session
+	fmt.Println("ConsumeClaim Started")
 	for {
 		select {
 		case message := <-claim.Messages():

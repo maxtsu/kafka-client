@@ -104,15 +104,8 @@ func main() {
 		sigterm := make(chan os.Signal, 1)
 		signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
 
-		// // Run msg process in gorouting
-		// go consumer.ProcessIngestMessages()
-
-		// Start the ingest processors
-		NoOfConsumerGoRoutines := 3
-
-		for i := 0; i < int(NoOfConsumerGoRoutines); i++ {
-			go consumer.ProcessIngestMessages()
-		}
+		// Run msg process in gorouting
+		go consumer.ProcessIngestMessages()
 
 		for keepRunning {
 			select {
