@@ -66,7 +66,7 @@ func main() {
 		// consumerWorker(id, config, configYaml)
 
 		// Start multiple consumer workers
-		for id := range 2 {
+		for id := range 10 {
 			cgroup_wg.Add(1)
 			go consumerWorker(id, cgroup_wg, config, configYaml)
 		}
