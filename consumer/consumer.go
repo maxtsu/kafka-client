@@ -10,6 +10,7 @@ import (
 
 // Consumer represents a Sarama consumer group consumer
 type Consumer struct {
+	ID       int
 	Ready    chan bool
 	clientID string
 	session  sarama.ConsumerGroupSession
@@ -20,8 +21,9 @@ type Consumer struct {
 }
 
 // Create the ready channel
-func CreateConsumer() Consumer {
+func CreateConsumer(id int) Consumer {
 	consumer := Consumer{ // Setup a new Sarama consumer group
+		ID:    id,
 		Ready: make(chan bool),
 	}
 	consumer.processChan = make(chan *sarama.ConsumerMessage, 1024)
@@ -33,7 +35,7 @@ func CreateConsumer() Consumer {
 func (consumer *Consumer) Setup(session sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready
 	close(consumer.Ready)
-	fmt.Println("Setup ", "memberid ", session.MemberID(), "sessionid ", session.GenerationID(), "claims ", session.Claims())
+	fmt.Printf("Consumer: %d Setup memberid %+v sessionid %+v claims %+v\n", consumer.ID, session.MemberID(), session.GenerationID(), session.Claims())
 	return nil
 }
 

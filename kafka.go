@@ -185,7 +185,7 @@ func consumerWorker(id int, config *sarama.Config, configYaml Config) {
 	topics := strings.Split(configYaml.Topics, ",")            // convert string to slice/list
 	keepRunning := true
 
-	consumer := consumer.CreateConsumer()
+	consumer := consumer.CreateConsumer(id)
 
 	client, err := sarama.NewConsumerGroup(brokers, configYaml.GroupID, config)
 	if err != nil {
