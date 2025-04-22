@@ -40,7 +40,7 @@ func (consumer *Consumer) Setup(session sarama.ConsumerGroupSession) error {
 // Cleanup implements sarama.ConsumerGroupHandler.
 func (c *Consumer) Cleanup(session sarama.ConsumerGroupSession) error {
 	fmt.Println("Consumer cleanup.")
-	fmt.Println("Setup ", "memberid ", session.MemberID(), "sessionid ", session.GenerationID(), "claims ", session.Claims())
+	fmt.Println("Cleanup ", "memberid ", session.MemberID(), "sessionid ", session.GenerationID(), "claims ", session.Claims())
 	return nil
 }
 
