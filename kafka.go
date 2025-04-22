@@ -60,76 +60,16 @@ func main() {
 		config.Net.SASL.Password = configYaml.SaslPassword
 
 		cgroup_wg := &sync.WaitGroup{}
-		id := 0
 		// point new consumer is created
-		cgroup_wg.Add(1)
-		consumerWorker(id, config, configYaml)
+		// id := 0
+		// cgroup_wg.Add(1)
+		// consumerWorker(id, config, configYaml)
 
-		// consumer := consumer.CreateConsumer()
-
-		// fmt.Printf("config: %+v\n", config)
-		// client, err := sarama.NewConsumerGroup(brokers, configYaml.GroupID, config)
-		// if err != nil {
-		// 	fmt.Printf("InitConsumer: Error creating consumer group client: %v\n", err)
-		// }
-		// ctx, cancel := context.WithCancel(context.Background())
-
-		// consumptionIsPaused := false
-		// wg := &sync.WaitGroup{}
-		// wg.Add(1)
-		// go func() {
-		// 	defer wg.Done()
-		// 	for {
-		// 		// `Consume` should be called inside an infinite loop, when a
-		// 		// server-side rebalance happens, the consumer session will need to be
-		// 		// recreated to get the new claims
-		// 		if err := client.Consume(ctx, topics, &consumer); err != nil {
-		// 			fmt.Printf("InitConsumer: Error from consumer: %v", err)
-		// 			fmt.Printf("Retrying to Connect Kafka in 30s...")
-
-		// 			connectionRetryInterval := time.Duration(30) * time.Second
-		// 			time.Sleep(connectionRetryInterval)
-		// 		}
-		// 		// check if context was cancelled, signaling that the consumer should stop
-		// 		if ctx.Err() != nil {
-		// 			fmt.Printf("InitConsumer: Stopping Consumer")
-		// 			return
-		// 		}
-		// 		consumer.Ready = make(chan bool)
-		// 	}
-		// }()
-
-		// <-consumer.Ready // Await till the consumer has been set up
-		// fmt.Println("Sarama consumer ready")
-
-		// sigusr1 := make(chan os.Signal, 1)
-		// signal.Notify(sigusr1, syscall.SIGUSR1)
-
-		// sigterm := make(chan os.Signal, 1)
-		// signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
-
-		// // Run msg process in gorouting
-		// go consumer.ProcessIngestMessages()
-
-		// for keepRunning {
-		// 	select {
-		// 	case <-ctx.Done():
-		// 		fmt.Println("terminating: context cancelled")
-		// 		keepRunning = false
-		// 	case <-sigterm:
-		// 		fmt.Println("terminating: via signal")
-		// 		keepRunning = false
-		// 	case <-sigusr1:
-		// 		toggleConsumptionFlow(client, &consumptionIsPaused)
-		// 	}
-		// }
-
-		// cancel() // close all consumers
-		// fmt.Println("ctx cancelled")
-		// wg.Wait()
-		// if err = client.Close(); err != nil {
-		// 	fmt.Printf("InitConsumer: Error closing client: %v", err)
-		// }
+		// Start multiple consumer workers
+		for id := range 2 {
+			cgroup_wg.Add(1)
+			go consumerWorker(id, config, configYaml)
+		}
 
 		fmt.Println("Before cgroup_wg Done")
 		cgroup_wg.Done()
