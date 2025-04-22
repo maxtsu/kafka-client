@@ -41,8 +41,8 @@ func (consumer *Consumer) Setup(session sarama.ConsumerGroupSession) error {
 
 // Cleanup implements sarama.ConsumerGroupHandler.
 func (c *Consumer) Cleanup(session sarama.ConsumerGroupSession) error {
-	fmt.Println("Consumer cleanup.")
-	fmt.Println("Cleanup ", "memberid ", session.MemberID(), "sessionid ", session.GenerationID(), "claims ", session.Claims())
+	fmt.Printf("Consumer: %d Consumer cleanup.\n", c.ID)
+	fmt.Printf("Consumer: %d Cleanup memberid memberid %+v sessionid %+v claims %+v\n", c.ID, session.MemberID(), session.GenerationID(), session.Claims())
 	return nil
 }
 
@@ -53,7 +53,7 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 	// The `ConsumeClaim` itself is called within a goroutine, see:
 	// https://github.com/Shopify/sarama/blob/main/consumer_group.go#L27-L29
 	consumer.session = session
-	fmt.Println("ConsumeClaim Started")
+	fmt.Printf("Consumer: %d ConsumeClaim Started\n", consumer.ID)
 	for {
 		select {
 		case message := <-claim.Messages():
@@ -85,7 +85,7 @@ func (consumer *Consumer) ProcessIngestMessages() {
 		// 	)
 		// 	continue
 		// }
-		fmt.Printf("PART: %s MSG: %s\n", strconv.Itoa(int(message.Partition)), string(message.Value))
+		fmt.Printf("Consumer: %d PART: %s MSG: %s\n", consumer.ID, strconv.Itoa(int(message.Partition)), string(message.Value))
 	}
-	fmt.Println("Completed IngestMessaging")
+	fmt.Printf("Consumer: %d Completed IngestMessaging\n", consumer.ID)
 }
