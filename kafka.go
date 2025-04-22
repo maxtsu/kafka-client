@@ -64,14 +64,16 @@ func main() {
 		// point new consumer is created
 		// Start multiple consumer workers
 		keepRunning = true
-		_, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
+		//_, cancel := context.WithCancel(context.Background())
 		for id := range 5 {
 			cWorker := consumeWork{
-				id:          id,
-				cancel_kill: cancel,
-				c_wg:        cgroup_wg,
-				config:      config,
-				configYaml:  configYaml,
+				id:         id,
+				ctx:        ctx,
+				cancel:     cancel,
+				c_wg:       cgroup_wg,
+				config:     config,
+				configYaml: configYaml,
 			}
 
 			cgroup_wg.Add(1)
@@ -115,11 +117,12 @@ func ReadFile(fileName string) []byte {
 }
 
 type consumeWork struct {
-	id          int
-	cancel_kill context.CancelFunc
-	c_wg        *sync.WaitGroup
-	config      *sarama.Config
-	configYaml  Config
+	id         int
+	ctx        context.Context
+	cancel     context.CancelFunc
+	c_wg       *sync.WaitGroup
+	config     *sarama.Config
+	configYaml Config
 }
 
 func (c *consumeWork) consumerWorker() {
@@ -135,7 +138,7 @@ func (c *consumeWork) consumerWorker() {
 	if err != nil {
 		fmt.Printf("InitConsumer %d: Error creating consumer group client: %v\n", c.id, err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	//ctx, cancel := context.WithCancel(context.Background())
 
 	// consumptionIsPaused := false
 	wg := &sync.WaitGroup{}
@@ -146,7 +149,7 @@ func (c *consumeWork) consumerWorker() {
 			// `Consume` should be called inside an infinite loop, when a
 			// server-side rebalance happens, the consumer session will need to be
 			// recreated to get the new claims
-			if err := client.Consume(ctx, topics, &consumer); err != nil {
+			if err := client.Consume(c.ctx, topics, &consumer); err != nil {
 				fmt.Printf("Consumer: %d Error from consumer: %v", c.id, err)
 				fmt.Printf("Consumer: %d Retrying to Connect Kafka in 30s...", c.id)
 
@@ -154,7 +157,7 @@ func (c *consumeWork) consumerWorker() {
 				time.Sleep(connectionRetryInterval)
 			}
 			// check if context was cancelled, signaling that the consumer should stop
-			if ctx.Err() != nil {
+			if c.ctx.Err() != nil {
 				fmt.Printf("Consumer: %d Stopping Consumer\n", c.id)
 				return
 			}
@@ -178,7 +181,7 @@ func (c *consumeWork) consumerWorker() {
 
 	for keepRunning {
 		select {
-		case <-ctx.Done():
+		case <-c.ctx.Done():
 			fmt.Printf("Consumer: %d terminating: context cancelled\n", c.id)
 			keepRunning = false
 		case <-sigterm:
@@ -190,7 +193,7 @@ func (c *consumeWork) consumerWorker() {
 		}
 	}
 
-	cancel() // close all consumers
+	c.cancel() // close all consumers
 	fmt.Printf("Consumer: %d ctx cancelled\n", c.id)
 	wg.Wait()
 	if err = client.Close(); err != nil {
