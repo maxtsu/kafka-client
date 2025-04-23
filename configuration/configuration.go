@@ -49,11 +49,11 @@ func NewTLSConfig(clientCertFile, clientKeyFile, caCertFile string) (*tls.Config
 	// Load CA cert
 	//caCert, err := ioutil.ReadFile(caCertFile)
 	caCert := ReadFile(caCertFile)
-	if err != nil {
-		return &tlsConfig, err
-	} else {
-		fmt.Printf("CA cert file load error %+v", err)
-	}
+	// if err != nil {
+	// 	return &tlsConfig, err
+	// } else {
+	// 	fmt.Printf("CA cert file load error %+v", err)
+	// }
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 	tlsConfig.RootCAs = caCertPool
