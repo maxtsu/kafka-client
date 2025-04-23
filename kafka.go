@@ -45,8 +45,16 @@ func main() {
 		config.Net.SASL.Enable = false
 
 		switch configYaml.SecurityProtocol {
-		case "sasl_ssl":
+		case "SASL_SSL":
 			config.Net.SASL.Enable = true
+			config.Net.SASL.Handshake = true
+
+			tlsConfig, err := configuration.NewTLSConfig("", "", configYaml.SslCaLocation)
+			if err != nil {
+				log.Fatal(err)
+			}
+			config.Net.TLS.Enable = true
+			config.Net.TLS.Config = tlsConfig
 		}
 
 		switch configYaml.SaslMechanisms {
