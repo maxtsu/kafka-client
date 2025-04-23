@@ -58,6 +58,8 @@ func main() {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		for id := range 5 {
+			stamp := fmt.Sprintf("[sarama ID %d]", id)
+			sarama.Logger = log.New(os.Stdout, stamp, log.LstdFlags)
 			cGroup := consumerGroup.ConsumerGroup{
 				Id:         id,
 				Ctx:        ctx,
