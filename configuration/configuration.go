@@ -36,7 +36,7 @@ func ReadFile(fileName string) []byte {
 	return byteResult
 }
 
-func NewTLSConfig(clientCertFile, clientKeyFile, caCertFile string) (*tls.Config, error) {
+func NewTLSConfig(caCertFile string) *tls.Config {
 	tlsConfig := tls.Config{}
 
 	// // Load client cert
@@ -59,5 +59,5 @@ func NewTLSConfig(clientCertFile, clientKeyFile, caCertFile string) (*tls.Config
 	tlsConfig.RootCAs = caCertPool
 
 	//tlsConfig.BuildNameToCertificate()
-	return &tlsConfig, err
+	return &tlsConfig
 }

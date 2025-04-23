@@ -49,7 +49,7 @@ func main() {
 			config.Net.SASL.Enable = true
 			config.Net.SASL.Handshake = true
 
-			tlsConfig, err := configuration.NewTLSConfig("", "", configYaml.SslCaLocation)
+			tlsConfig := configuration.NewTLSConfig(configYaml.SslCaLocation)
 			if err != nil {
 				log.Fatal(err)
 			}
