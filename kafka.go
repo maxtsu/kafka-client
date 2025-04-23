@@ -50,9 +50,10 @@ func main() {
 			config.Net.SASL.Handshake = true
 
 			tlsConfig := configuration.NewTLSConfig(configYaml.SslCaLocation)
-			if err != nil {
-				log.Fatal(err)
-			}
+			// if err != nil {
+			// 	log.Fatal(err)
+			// }
+			fmt.Printf("TLS %+v", tlsConfig)
 			config.Net.TLS.Enable = true
 			config.Net.TLS.Config = tlsConfig
 		}
