@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 )
 
@@ -48,7 +47,8 @@ func NewTLSConfig(clientCertFile, clientKeyFile, caCertFile string) (*tls.Config
 	tlsConfig.Certificates = []tls.Certificate{cert}
 
 	// Load CA cert
-	caCert, err := ioutil.ReadFile(caCertFile)
+	//caCert, err := ioutil.ReadFile(caCertFile)
+	caCert := ReadFile(caCertFile)
 	if err != nil {
 		return &tlsConfig, err
 	} else {
@@ -58,6 +58,6 @@ func NewTLSConfig(clientCertFile, clientKeyFile, caCertFile string) (*tls.Config
 	caCertPool.AppendCertsFromPEM(caCert)
 	tlsConfig.RootCAs = caCertPool
 
-	tlsConfig.BuildNameToCertificate()
+	//tlsConfig.BuildNameToCertificate()
 	return &tlsConfig, err
 }
