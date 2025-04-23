@@ -35,7 +35,7 @@ func main() {
 	if !configYaml.Producer {
 
 		fmt.Println("Starting a new Sarama consumer")
-		sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
+		//sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
 
 		// sarama config
 		config := sarama.NewConfig()
