@@ -30,7 +30,7 @@ func main() {
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
 
 	if err != nil {
-		fmt.Printf("Failed to create TLS configuration: %v", err)
+		fmt.Printf("Failed to create TLS configuration: %v\n", err)
 	}
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
@@ -42,7 +42,7 @@ func main() {
 		config := sarama.NewConfig()
 		//config.Consumer.Offsets.AutoCommit.Enable = false // disable auto-commit
 		config.Consumer.Offsets.AutoCommit.Enable = true // seet autocommit
-
+		fmt.Printf("Looking for file\n")
 		config.Net.SASL.Enable = false
 
 		switch configYaml.SecurityProtocol {
@@ -54,7 +54,7 @@ func main() {
 			// if err != nil {
 			// 	log.Fatal(err)
 			// }
-			fmt.Printf("TLS %+v", tlsConfig)
+			fmt.Printf("TLS %+v\n", tlsConfig)
 			config.Net.TLS.Enable = true
 			config.Net.TLS.Config = tlsConfig
 		}
