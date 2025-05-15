@@ -42,11 +42,11 @@ func main() {
 		config := sarama.NewConfig()
 		//config.Consumer.Offsets.AutoCommit.Enable = false // disable auto-commit
 		config.Consumer.Offsets.AutoCommit.Enable = true // seet autocommit
-		fmt.Printf("Looking for file\n")
 		config.Net.SASL.Enable = false
 
 		switch configYaml.SecurityProtocol {
 		case "SASL_SSL":
+                        fmt.Printf("case SASL_SSL\n")
 			config.Net.SASL.Enable = true
 			config.Net.SASL.Handshake = true
 
@@ -58,7 +58,6 @@ func main() {
 			config.Net.TLS.Enable = true
 			config.Net.TLS.Config = tlsConfig
 		}
-
 		switch configYaml.SaslMechanisms {
 		case "PLAIN": // SASLTypePlaintext represents the SASL/PLAIN mechanism
 			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
