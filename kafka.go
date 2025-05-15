@@ -15,6 +15,7 @@ import (
 
 // Version sarama v0.1
 const config_file = "kafka-config.yaml"
+const num_consumers = 5
 
 func main() {
 	fmt.Println("kafka sarama application v0.1")
@@ -76,7 +77,7 @@ func main() {
 		// Start multiple consumer workers
 		ctx, cancel := context.WithCancel(context.Background())
 
-		for id := range 5 {
+		for id := range num_consumers {
 			stamp := fmt.Sprintf("[sarama ID %d]", id)
 			sarama.Logger = log.New(os.Stdout, stamp, log.LstdFlags)
 			cGroup := consumerGroup.ConsumerGroup{
@@ -87,7 +88,6 @@ func main() {
 				Config:     config,
 				ConfigYaml: configYaml,
 			}
-
 			cgroup_wg.Add(1)
 			go cGroup.StartConsumerGroup()
 		}
