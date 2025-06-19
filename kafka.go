@@ -46,7 +46,7 @@ func main() {
 
 		switch configYaml.SecurityProtocol {
 		case "SASL_SSL":
-                        fmt.Printf("case SASL_SSL\n")
+
 			config.Net.SASL.Enable = true
 			config.Net.SASL.Handshake = true
 
