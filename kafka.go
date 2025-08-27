@@ -75,7 +75,7 @@ func createTLSConfiguration(cert string) (t *tls.Config) {
 
 // Version sarama v0.1
 const config_file = "kafka-config.yaml"
-const num_consumers = 5
+const num_consumers = 1
 
 func main() {
 	fmt.Println("kafka sarama application v0.1")
@@ -123,10 +123,8 @@ func main() {
 			fmt.Printf("SASL PLAIN\n")
 		case "OAUTHBEARER":
 			config.Net.SASL.Mechanism = sarama.SASLTypeOAuth
-			fmt.Printf("OAUTHBEARER\n")
 		default:
 			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-			fmt.Printf("DEFAULT\n")
 		}
 		config.Net.SASL.User = configYaml.SaslUsername
 		config.Net.SASL.Password = configYaml.SaslPassword
