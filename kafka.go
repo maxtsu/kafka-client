@@ -43,6 +43,18 @@ type KafkaConfig struct {
 	monitorConsumer int
 }
 
+var Kafka = &KafkaConfig{
+	// BootstrapServers: strings.Split(configYaml.BootstrapServers, ","),
+	// IngestTopic:      configYaml.Topics,
+	// ProducerTopic:    configYaml.Topics,
+	// Sasl: &SaslAuthentication{
+	// 	Username:    configYaml.SaslUsername,
+	// 	Password:    configYaml.SaslPassword,
+	// 	Certificate: configYaml.SslCaLocation,
+	// },
+	//monitorConsumer: getMonitorConsumerEnv(),
+}
+
 // var Kafka = &KafkaConfig{
 // 	BootstrapServers: strings.Split(os.Getenv("KAFKA_BROKERS"), ","),
 // 	IngestTopic:      "insights-ingest-data-topic",
@@ -88,18 +100,15 @@ func main() {
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
 
-	var Kafka = KafkaConfig{
-		BootstrapServers: strings.Split(configYaml.BootstrapServers, ","),
-		IngestTopic:      configYaml.Topics,
-		ProducerTopic:    configYaml.Topics,
-		Sasl: &SaslAuthentication{
-			Username:    configYaml.SaslUsername,
-			Password:    configYaml.SaslPassword,
-			Certificate: configYaml.SslCaLocation,
-		},
-		//monitorConsumer: getMonitorConsumerEnv(),
+	//var Kafka. = &KafkaConfig{
+	Kafka.BootstrapServers = strings.Split(configYaml.BootstrapServers, ",")
+	Kafka.IngestTopic = configYaml.Topics
+	Kafka.ProducerTopic = configYaml.Topics
+	Kafka.Sasl = &SaslAuthentication{
+		Username:    configYaml.SaslUsername,
+		Password:    configYaml.SaslPassword,
+		Certificate: configYaml.SslCaLocation,
 	}
-
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
 
