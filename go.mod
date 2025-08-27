@@ -1,6 +1,6 @@
-module kafkaData
+module main
 
-go 1.22
+go 1.23
 
 require (
 	github.com/IBM/sarama v1.43.3

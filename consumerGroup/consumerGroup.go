@@ -3,8 +3,8 @@ package consumerGroup
 import (
 	"context"
 	"fmt"
-	"kafkaData/configuration"
-	"kafkaData/consumer"
+	"main/configuration"
+	"main/consumer"
 	"os"
 	"os/signal"
 	"strings"

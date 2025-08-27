@@ -1,17 +1,77 @@
-package kafkaData
+package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
-	"kafkaData/configuration"
-	"kafkaData/consumerGroup"
-	"log"
+	"main/configuration"
+	"main/consumerGroup"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/IBM/sarama"
+	"github.com/gologme/log"
 	"gopkg.in/yaml.v2"
 )
+
+var (
+	IngestConsumerUp bool
+	ConfigConsumerUp bool
+	ProducerUp       bool
+)
+
+// SaslAuthentication is structure to hold authentication credentials
+type SaslAuthentication struct {
+	Username    string `validate:"required_with=Password gt=0" json:"username,omitempty"`
+	Password    string `validate:"required_with=Username gt=0" json:"password,omitempty"`
+	Certificate string `json:"certificate,omitempty"`
+}
+
+// KafkaConfig is the destination structure of KafkaConfig
+type KafkaConfig struct {
+	BootstrapServers   []string            `validate:"required,gt=0" json:"bootstrap-servers"`
+	IngestTopic        string              `json:"ingest-consumer-topic,omitempty"`
+	ConfigTopic        string              `json:"config-consumer-topic,omitempty"`
+	ProducerTopic      string              `json:"producer-topic,omitempty"`
+	Sasl               *SaslAuthentication `json:"sasl,omitempty"`
+	UseHashPartitioner bool                `json:"use-hash-partitioner,omitempty"`
+	IngestConsumer     sarama.ConsumerGroup
+	ConfigConsumer     sarama.Consumer
+	Producer           sarama.AsyncProducer
+	//processFunc        func(*work.AntWorkItemT, bool)
+	monitorConsumer int
+}
+
+var Kafka = &KafkaConfig{
+	BootstrapServers: strings.Split(os.Getenv("KAFKA_BROKERS"), ","),
+	IngestTopic:      "insights-ingest-data-topic",
+	ConfigTopic:      "insights-ingest-config-topic",
+	ProducerTopic:    "insights-topic-rule-data-producer-topic",
+	Sasl: &SaslAuthentication{
+		Username:    os.Getenv("KAFKA_BROKER_USERNAME"),
+		Password:    os.Getenv("KAFKA_BROKER_PASSWORD"),
+		Certificate: os.Getenv("KAFKA_BROKER_CERTIFICATE"),
+	},
+	//monitorConsumer: getMonitorConsumerEnv(),
+}
+
+func createTLSConfiguration(cert string) (t *tls.Config) {
+	caCert, err := os.ReadFile(cert)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	t = &tls.Config{
+		RootCAs:            caCertPool,
+		InsecureSkipVerify: false,
+	}
+	return t
+}
 
 // Version sarama v0.1
 const config_file = "kafka-config.yaml"
@@ -36,7 +96,6 @@ func main() {
 	if !configYaml.Producer {
 
 		fmt.Println("Starting a new Sarama consumer")
-		//sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
 
 		// sarama config
 		config := sarama.NewConfig()
@@ -92,80 +151,5 @@ func main() {
 		}
 		cgroup_wg.Wait()
 		fmt.Println("Application terminated")
-	}
-}
-
-func (k *KafkaConfig) InitProducer(retry bool) {
-	if len(k.BootstrapServers) == 0 || k.BootstrapServers[0] == "" {
-		return
-	}
-	if log.GetLevel().String() == "debug" {
-		sarama.Logger = logger.New(os.Stdout, "[sarama] ", logger.LstdFlags)
-	}
-
-	sarama.MaxRequestSize = 1024 * 1024 * 100 // Max Batch size 100 Mb
-
-	// producer config
-	config := sarama.NewConfig()
-	config.Version = sarama.V0_10_2_0
-	config.Producer.Retry.Max = 2
-	config.Producer.RequiredAcks = sarama.WaitForLocal
-	config.Producer.Return.Successes = true
-	config.Producer.Return.Errors = true
-	config.ClientID = util.GetEnv("POD_NAME", "paragon-insights-tand")
-	var username, password, cert string
-	if k.Sasl != nil {
-		username = k.Sasl.Username
-		password = k.Sasl.Password
-		cert = k.Sasl.Certificate
-	}
-	if username == "" || password == "" {
-		config.Net.SASL.Enable = false
-	} else {
-		config.Net.SASL.Enable = true
-		config.Net.SASL.User = username
-		config.Net.SASL.Password = password
-		config.Net.SASL.Handshake = true
-	}
-	if cert == "" {
-		config.Net.TLS.Enable = false
-	} else {
-		config.Net.TLS.Enable = true
-		config.Net.TLS.Config = createTLSConfiguration(cert)
-	}
-
-	// async producer
-	prd, err := sarama.NewAsyncProducer(k.BootstrapServers, config)
-
-	if err != nil {
-		log.Errorln("Could not initialize kafka producer: ", err)
-		if retry {
-			k.RetryProducerConnection()
-		}
-		return
-	} else if !retry && stopKafkaProducerRetry != nil {
-		// Retry is Successful
-		stopKafkaProducerRetry <- struct{}{}
-		stopKafkaProducerRetry = nil
-	}
-	k.Producer = prd
-	for i := 0; i < int(NoOfProducerGoRoutines); i++ {
-		go func() {
-			stopChannel := make(chan struct{}, 1)
-			stopKafkaProducerChannels = append(stopKafkaProducerChannels, stopChannel)
-			ProducerUp = true
-
-			for {
-				select {
-				case message := <-BufKafkaProducerChan:
-					for k, v := range message {
-						go Kafka.PublishToKafka(v, k)
-					}
-				case <-stopChannel:
-					ProducerUp = false
-					return
-				}
-			}
-		}()
 	}
 }
