@@ -120,10 +120,13 @@ func main() {
 		switch configYaml.SaslMechanisms {
 		case "PLAIN": // SASLTypePlaintext represents the SASL/PLAIN mechanism
 			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+			fmt.Printf("SASL PLAIN\n")
 		case "OAUTHBEARER":
 			config.Net.SASL.Mechanism = sarama.SASLTypeOAuth
+			fmt.Printf("OAUTHBEARER\n")
 		default:
 			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+			fmt.Printf("DEFAULT\n")
 		}
 		config.Net.SASL.User = configYaml.SaslUsername
 		config.Net.SASL.Password = configYaml.SaslPassword
