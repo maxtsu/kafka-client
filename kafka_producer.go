@@ -42,7 +42,6 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 		cert = k.Sasl.
 			Certificate
 	}
-	fmt.Printf("Sasl\n")
 	if username == "" || password == "" {
 		config.Net.SASL.Enable = false
 	} else {
@@ -51,7 +50,6 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 		config.Net.SASL.Password = password
 		config.Net.SASL.Handshake = true
 	}
-	fmt.Printf("config.Net\n")
 	if cert == "" {
 		config.Net.TLS.Enable = false
 	} else {
@@ -64,8 +62,10 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	fmt.Printf("async producer\n")
 
 	if err != nil {
+		fmt.Printf("err\n")
 		log.Errorln("Could not initialize kafka producer: ", err)
 		if retry {
+			fmt.Printf("Retry\n")
 			k.RetryProducerConnection()
 		}
 		return
