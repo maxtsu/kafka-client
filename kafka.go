@@ -165,6 +165,7 @@ func main() {
 	if configYaml.Producer { // Kafka Producer
 		fmt.Println("Starting a new Sarama Producer")
 
+		fmt.Printf("kafkaconfig: %+v", Kafka)
 		Kafka.InitProducer(true)
 
 		// config := sarama.NewConfig()
