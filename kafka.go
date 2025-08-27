@@ -100,7 +100,7 @@ func main() {
 		// sarama config
 		config := sarama.NewConfig()
 		//config.Consumer.Offsets.AutoCommit.Enable = false // disable auto-commit
-		config.Consumer.Offsets.AutoCommit.Enable = true // seet autocommit
+		config.Consumer.Offsets.AutoCommit.Enable = true // set autocommit
 		config.Net.SASL.Enable = false
 
 		switch configYaml.SecurityProtocol {
@@ -128,7 +128,7 @@ func main() {
 		config.Net.SASL.User = configYaml.SaslUsername
 		config.Net.SASL.Password = configYaml.SaslPassword
 
-		fmt.Printf("CONFIH: %+v", config.Net)
+		fmt.Printf("CONFIG: %+v", config.Net)
 
 		cgroup_wg := &sync.WaitGroup{}
 		// point new consumer is created
