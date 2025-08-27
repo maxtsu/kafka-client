@@ -73,6 +73,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	k.Producer = prd
 	for i := 0; i < int(NoOfProducerGoRoutines); i++ {
 		go func() {
+			fmt.Printf("Start go func \n")
 			stopChannel := make(chan struct{}, 1)
 			stopKafkaProducerChannels = append(stopKafkaProducerChannels, stopChannel)
 			ProducerUp = true
