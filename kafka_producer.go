@@ -62,7 +62,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	fmt.Printf("async producer\n")
 
 	if err != nil {
-		fmt.Printf("err\n")
+		fmt.Printf("err: %+v\n", err)
 		log.Errorln("Could not initialize kafka producer: ", err)
 		if retry {
 			fmt.Printf("Retry\n")
