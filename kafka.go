@@ -8,6 +8,7 @@ import (
 	"main/configuration"
 	"main/consumerGroup"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/IBM/sarama"
@@ -99,14 +100,14 @@ func main() {
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
 
-	// Kafka.BootstrapServers = strings.Split(configYaml.BootstrapServers, ",")
-	// Kafka.IngestTopic = configYaml.Topics
-	// Kafka.ProducerTopic = configYaml.Topics
-	// Kafka.Sasl = &SaslAuthentication{
-	// 	Username:    configYaml.SaslUsername,
-	// 	Password:    configYaml.SaslPassword,
-	// 	Certificate: configYaml.SslCaLocation,
-	// }
+	Kafka.BootstrapServers = strings.Split(configYaml.BootstrapServers, ",")
+	Kafka.IngestTopic = configYaml.Topics
+	Kafka.ProducerTopic = configYaml.Topics
+	Kafka.Sasl = &SaslAuthentication{
+		Username:    configYaml.SaslUsername,
+		Password:    configYaml.SaslPassword,
+		Certificate: configYaml.SslCaLocation,
+	}
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
 
