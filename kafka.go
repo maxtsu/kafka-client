@@ -152,7 +152,7 @@ func main() {
 
 		fmt.Printf("kafkaconfig: %+v\n", Kafka)
 		Kafka.InitProducer(true)
-
+		fmt.Printf("Finished INIT\n")
 		str := "Hello, Kafka!"
 		msg := []byte(str)
 
