@@ -88,7 +88,7 @@ func main() {
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
 
-	var Kafka = &KafkaConfig{
+	var Kafka = KafkaConfig{
 		BootstrapServers: strings.Split(configYaml.BootstrapServers, ","),
 		IngestTopic:      configYaml.Topics,
 		ProducerTopic:    configYaml.Topics,
