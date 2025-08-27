@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -58,8 +57,6 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 
 	// async producer
 	prd, err := sarama.NewAsyncProducer(k.BootstrapServers, config)
-
-	fmt.Printf("We have got this far \n")
 
 	if err != nil {
 		log.Errorln("Could not initialize kafka producer: ", err)

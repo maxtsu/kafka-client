@@ -45,29 +45,6 @@ type KafkaConfig struct {
 
 var Kafka = &KafkaConfig{}
 
-// BootstrapServers: strings.Split(configYaml.BootstrapServers, ","),
-// IngestTopic:      configYaml.Topics,
-// ProducerTopic:    configYaml.Topics,
-// Sasl: &SaslAuthentication{
-// 	Username:    configYaml.SaslUsername,
-// 	Password:    configYaml.SaslPassword,
-// 	Certificate: configYaml.SslCaLocation,
-// },
-//monitorConsumer: getMonitorConsumerEnv(),
-
-// var Kafka = &KafkaConfig{
-// 	BootstrapServers: strings.Split(os.Getenv("KAFKA_BROKERS"), ","),
-// 	IngestTopic:      "insights-ingest-data-topic",
-// 	ConfigTopic:      "insights-ingest-config-topic",
-// 	ProducerTopic:    "insights-topic-rule-data-producer-topic",
-// 	Sasl: &SaslAuthentication{
-// 		Username:    os.Getenv("KAFKA_BROKER_USERNAME"),
-// 		Password:    os.Getenv("KAFKA_BROKER_PASSWORD"),
-// 		Certificate: os.Getenv("KAFKA_BROKER_CERTIFICATE"),
-// 	},
-// 	//monitorConsumer: getMonitorConsumerEnv(),
-// }
-
 func createTLSConfiguration(cert string) (t *tls.Config) {
 	caCert, err := os.ReadFile(cert)
 	if err != nil {
@@ -173,8 +150,13 @@ func main() {
 	if configYaml.Producer { // Kafka Producer
 		fmt.Println("Starting a new Sarama Producer")
 
-		fmt.Printf("kafkaconfig: %+v", Kafka)
+		fmt.Printf("kafkaconfig: %+v\n", Kafka)
 		Kafka.InitProducer(true)
+
+		str := "Hello, Kafka!"
+		msg := []byte(str)
+
+		Kafka.PublishToKafka(msg, "123")
 
 		// config := sarama.NewConfig()
 		// config.Producer.RequiredAcks = sarama.WaitForAll
