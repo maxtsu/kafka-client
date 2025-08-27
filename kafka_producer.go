@@ -66,11 +66,13 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 		}
 		return
 	} else if !retry && stopKafkaProducerRetry != nil {
+		fmt.Printf("elsi if retry\n")
 		// Retry is Successful
 		stopKafkaProducerRetry <- struct{}{}
 		stopKafkaProducerRetry = nil
 	}
 	k.Producer = prd
+	fmt.Printf("Start for loop \n")
 	for i := 0; i < int(NoOfProducerGoRoutines); i++ {
 		go func() {
 			fmt.Printf("Start go func \n")
