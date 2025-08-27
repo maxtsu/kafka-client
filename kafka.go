@@ -33,7 +33,6 @@ type SaslAuthentication struct {
 type KafkaConfig struct {
 	BootstrapServers   []string            `validate:"required,gt=0" json:"bootstrap-servers"`
 	IngestTopic        string              `json:"ingest-consumer-topic,omitempty"`
-	ConfigTopic        string              `json:"config-consumer-topic,omitempty"`
 	ProducerTopic      string              `json:"producer-topic,omitempty"`
 	Sasl               *SaslAuthentication `json:"sasl,omitempty"`
 	UseHashPartitioner bool                `json:"use-hash-partitioner,omitempty"`
@@ -44,18 +43,18 @@ type KafkaConfig struct {
 	monitorConsumer int
 }
 
-var Kafka = &KafkaConfig{
-	BootstrapServers: strings.Split(os.Getenv("KAFKA_BROKERS"), ","),
-	IngestTopic:      "insights-ingest-data-topic",
-	ConfigTopic:      "insights-ingest-config-topic",
-	ProducerTopic:    "insights-topic-rule-data-producer-topic",
-	Sasl: &SaslAuthentication{
-		Username:    os.Getenv("KAFKA_BROKER_USERNAME"),
-		Password:    os.Getenv("KAFKA_BROKER_PASSWORD"),
-		Certificate: os.Getenv("KAFKA_BROKER_CERTIFICATE"),
-	},
-	//monitorConsumer: getMonitorConsumerEnv(),
-}
+// var Kafka = &KafkaConfig{
+// 	BootstrapServers: strings.Split(os.Getenv("KAFKA_BROKERS"), ","),
+// 	IngestTopic:      "insights-ingest-data-topic",
+// 	ConfigTopic:      "insights-ingest-config-topic",
+// 	ProducerTopic:    "insights-topic-rule-data-producer-topic",
+// 	Sasl: &SaslAuthentication{
+// 		Username:    os.Getenv("KAFKA_BROKER_USERNAME"),
+// 		Password:    os.Getenv("KAFKA_BROKER_PASSWORD"),
+// 		Certificate: os.Getenv("KAFKA_BROKER_CERTIFICATE"),
+// 	},
+// 	//monitorConsumer: getMonitorConsumerEnv(),
+// }
 
 func createTLSConfiguration(cert string) (t *tls.Config) {
 	caCert, err := os.ReadFile(cert)
@@ -89,9 +88,18 @@ func main() {
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
 
-	if err != nil {
-		fmt.Printf("Failed to create TLS configuration: %v\n", err)
+	var Kafka = &KafkaConfig{
+		BootstrapServers: strings.Split(configYaml.BootstrapServers, ","),
+		IngestTopic:      configYaml.Topics,
+		ProducerTopic:    configYaml.Topics,
+		Sasl: &SaslAuthentication{
+			Username:    configYaml.SaslUsername,
+			Password:    configYaml.SaslPassword,
+			Certificate: configYaml.SslCaLocation,
+		},
+		//monitorConsumer: getMonitorConsumerEnv(),
 	}
+
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
 
@@ -153,5 +161,50 @@ func main() {
 		}
 		cgroup_wg.Wait()
 		fmt.Println("Application terminated")
+	}
+	if configYaml.Producer { // Kafka Producer
+		fmt.Println("Starting a new Sarama Producer")
+
+		Kafka.InitProducer(true)
+
+		// config := sarama.NewConfig()
+		// config.Producer.RequiredAcks = sarama.WaitForAll
+		// config.Producer.Retry.Max = 5
+		// config.Producer.Return.Successes = true
+
+		// // Set Kafka version
+		// config.Version = sarama.V2_1_0_0 // adjust to match your Kafka broker version
+
+		// // Set ClientID
+		// config.ClientID = "my-kafka-producer"
+
+		// // Enable SASL if needed
+		// config.Net.SASL.Enable = true
+		// config.Net.SASL.User = configYaml.SaslUsername
+		// config.Net.SASL.Password = configYaml.SaslPassword
+
+		// config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+
+		// // Create a new sync producer
+		// producer, err := sarama.NewSyncProducer(brokers, config)
+		// if err != nil {
+		// 	log.Fatalf("Failed to start Sarama producer: %v", err)
+		// }
+		// defer producer.Close()
+
+		// // Create a message
+		// msg := &sarama.ProducerMessage{
+		// 	Topic: "your-topic",
+		// 	Value: sarama.StringEncoder("Hello Kafka from Go!"),
+		// }
+
+		// // Send the message
+		// partition, offset, err := producer.SendMessage(msg)
+		// if err != nil {
+		// 	log.Fatalf("Failed to send message: %v", err)
+		// }
+
+		// log.Printf("Message sent to partition %d at offset %d\n", partition, offset)
+
 	}
 }

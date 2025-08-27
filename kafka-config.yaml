@@ -1,8 +1,8 @@
 ---
 #configuration for kafka_sarama_v0.1.app
 #timestamp: Yes
-#producer: Yes
-producer: No
+producer: Yes
+#producer: No
 bootstrap.servers: "10.54.16.135:9093"
 sasl.mechanisms: "PLAIN"
 security.protocol: "SASL_PLAINTEXT"
