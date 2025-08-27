@@ -156,7 +156,7 @@ func main() {
 		str := "Hello, Kafka!"
 		msg := []byte(str)
 
-		Kafka.PublishToKafka(msg, "123")
+		Kafka.PublishToKafka(msg, "message key")
 
 		// config := sarama.NewConfig()
 		// config.Producer.RequiredAcks = sarama.WaitForAll

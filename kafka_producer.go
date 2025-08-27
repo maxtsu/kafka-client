@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -8,7 +9,7 @@ import (
 )
 
 var (
-	NoOfProducerGoRoutines = 2
+	NoOfProducerGoRoutines = 1
 	// buffered channel to hold map of partitionKey -> message that needs to be published to kafka
 	BufKafkaProducerChan      = make(chan map[string][]byte, 1000)
 	stopKafkaProducerChannels []chan struct{}
@@ -75,6 +76,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 			stopChannel := make(chan struct{}, 1)
 			stopKafkaProducerChannels = append(stopKafkaProducerChannels, stopChannel)
 			ProducerUp = true
+			fmt.Printf("ProducerUp \n")
 
 			for {
 				select {
