@@ -134,6 +134,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 func (k *KafkaConfig) PublishToKafka(message []byte, kafkaPartionKey string) {
 	// skip publishing to destination if not connected
 	if k.Producer == nil {
+		fmt.Printf("Producer NIL")
 		return
 	}
 
@@ -149,6 +150,7 @@ func (k *KafkaConfig) PublishToKafka(message []byte, kafkaPartionKey string) {
 	msg.Key = sarama.StringEncoder(kafkaPartionKey)
 	k.Producer.Input() <- msg
 
+	fmt.Printf("ARE WE printing?")
 	select {
 	case <-k.Producer.Successes():
 		log.Debugln("Successfully published to Kafka partition: ", kafkaPartionKey)
