@@ -111,15 +111,13 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	fmt.Printf("Start for loop \n")
 	for i := 0; i < int(NoOfProducerGoRoutines); i++ {
 		go func() {
-			fmt.Printf("Start go func \n")
 			stopChannel := make(chan struct{}, 1)
 			stopKafkaProducerChannels = append(stopKafkaProducerChannels, stopChannel)
 			ProducerUp = true
-			fmt.Printf("ProducerUp \n")
-
 			for {
 				select {
 				case message := <-BufKafkaProducerChan:
+					fmt.Printf("Received MSG: %+v", message)
 					for k, v := range message {
 						go Kafka.PublishToKafka(v, k)
 					}
