@@ -70,6 +70,8 @@ const num_consumers = 1
 func main() {
 	fmt.Println("kafka sarama application v0.1")
 	SetLoggingLevel("DEBUG")
+	sarama.Logger = log.New(os.Stdout, "[Sarama] ", log.LstdFlags)
+
 	// Read the config file
 	byteResult := configuration.ReadFile(config_file)
 	var configYaml configuration.Config
