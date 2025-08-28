@@ -149,7 +149,6 @@ func (k *KafkaConfig) PublishToKafka(message []byte, kafkaPartionKey string) {
 	msg.Key = sarama.StringEncoder(kafkaPartionKey)
 	k.Producer.Input() <- msg
 
-	fmt.Printf("ARE WE printing?")
 	select {
 	case <-k.Producer.Successes():
 		log.Debugln("Successfully published to Kafka partition: ", kafkaPartionKey)

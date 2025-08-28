@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -10,7 +11,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/gologme/log"
@@ -145,12 +145,36 @@ func main() {
 
 		fmt.Printf("kafkaconfig: %+v\n", Kafka)
 		Kafka.InitProducer(true)
-		time.Sleep(5 * time.Second)
+
 		str := "Hello, Kafka!"
 		msg := []byte(str)
 
 		Kafka.PublishToKafka(msg, "message key")
-		time.Sleep(5 * time.Second)
+
+		defer Kafka.Stop()
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Println("Kafka Producer sarama")
+		fmt.Println("Insert/Paste JSON message and press enter")
+		fmt.Println("CTRL-C or CTRL-Z to cancel")
+		for {
+			fmt.Print("-> ")
+			text, _ := reader.ReadString('\n')
+			// convert CRLF to LF
+			text = strings.Replace(text, "\n", "", -1)
+			fmt.Println("Message to send: ", text)
+			// Convert string to serial byte format for transmission
+			bytes := []byte(text)
+			// Produce the message to the Kafka topic
+			Kafka.PublishToKafka(bytes, "message key")
+
+			//err = produceMessage(producer, configYaml.Topics, bytes)
+			if err != nil {
+				fmt.Printf("Failed to produce message: %s\n", err)
+				return
+			}
+			fmt.Println("Message produced successfully!")
+		}
+
 	}
 }
 
