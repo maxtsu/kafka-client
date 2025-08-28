@@ -51,8 +51,6 @@ func main() {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	fmt.Println("GOT heresdvcsdv")
-
 	// Rad the config file
 	byteResult := ReadFile(config_file)
 
