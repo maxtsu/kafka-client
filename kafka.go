@@ -139,11 +139,13 @@ func main() {
 		cgroup_wg.Wait()
 		fmt.Println("Application terminated")
 	}
+
 	if configYaml.Producer { // Kafka Producer
 		fmt.Println("Starting a new Sarama Producer")
 
 		fmt.Printf("kafkaconfig: %+v\n", Kafka)
 		Kafka.InitProducer(true)
+		time.Sleep(5 * time.Second)
 		str := "Hello, Kafka!"
 		msg := []byte(str)
 

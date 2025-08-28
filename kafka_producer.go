@@ -108,13 +108,13 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 		stopKafkaProducerRetry = nil
 	}
 	k.Producer = prd
-	fmt.Printf("Start for loop \n")
 	for i := 0; i < int(NoOfProducerGoRoutines); i++ {
 		go func() {
 			stopChannel := make(chan struct{}, 1)
 			stopKafkaProducerChannels = append(stopKafkaProducerChannels, stopChannel)
 			ProducerUp = true
 			for {
+				fmt.Printf("WAITing for MSG")
 				select {
 				case message := <-BufKafkaProducerChan:
 					fmt.Printf("Received MSG: %+v", message)
