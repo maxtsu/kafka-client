@@ -132,6 +132,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 
 // PublishToKafka publishes messages to kafka
 func (k *KafkaConfig) PublishToKafka(message []byte, kafkaPartionKey string) {
+	fmt.Printf("Producer a Message????")
 	// skip publishing to destination if not connected
 	if k.Producer == nil {
 		fmt.Printf("Producer NIL")
