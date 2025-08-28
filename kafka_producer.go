@@ -76,6 +76,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	case "SASL_PLAINTEXT":
 		config.Net.SASL.Version = sarama.SASLHandshakeV0
 	}
+
 	switch k.SecurityMechanism {
 	case "PLAIN": // SASLTypePlaintext represents the SASL/PLAIN mechanism
 		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
