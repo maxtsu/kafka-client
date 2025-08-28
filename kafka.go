@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/gologme/log"
@@ -46,22 +47,6 @@ type KafkaConfig struct {
 }
 
 var Kafka = &KafkaConfig{}
-
-func createTLSConfiguration(cert string) (t *tls.Config) {
-	caCert, err := os.ReadFile(cert)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	t = &tls.Config{
-		RootCAs:            caCertPool,
-		InsecureSkipVerify: false,
-	}
-	return t
-}
 
 // Version sarama v0.1
 const config_file = "kafka-config.yaml"
@@ -159,51 +144,11 @@ func main() {
 
 		fmt.Printf("kafkaconfig: %+v\n", Kafka)
 		Kafka.InitProducer(true)
-		fmt.Printf("Finished INIT\n")
 		str := "Hello, Kafka!"
 		msg := []byte(str)
 
 		Kafka.PublishToKafka(msg, "message key")
-
-		// config := sarama.NewConfig()
-		// config.Producer.RequiredAcks = sarama.WaitForAll
-		// config.Producer.Retry.Max = 5
-		// config.Producer.Return.Successes = true
-
-		// // Set Kafka version
-		// config.Version = sarama.V2_1_0_0 // adjust to match your Kafka broker version
-
-		// // Set ClientID
-		// config.ClientID = "my-kafka-producer"
-
-		// // Enable SASL if needed
-		// config.Net.SASL.Enable = true
-		// config.Net.SASL.User = configYaml.SaslUsername
-		// config.Net.SASL.Password = configYaml.SaslPassword
-
-		// config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-
-		// // Create a new sync producer
-		// producer, err := sarama.NewSyncProducer(brokers, config)
-		// if err != nil {
-		// 	log.Fatalf("Failed to start Sarama producer: %v", err)
-		// }
-		// defer producer.Close()
-
-		// // Create a message
-		// msg := &sarama.ProducerMessage{
-		// 	Topic: "your-topic",
-		// 	Value: sarama.StringEncoder("Hello Kafka from Go!"),
-		// }
-
-		// // Send the message
-		// partition, offset, err := producer.SendMessage(msg)
-		// if err != nil {
-		// 	log.Fatalf("Failed to send message: %v", err)
-		// }
-
-		// log.Printf("Message sent to partition %d at offset %d\n", partition, offset)
-
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -234,4 +179,20 @@ func SetLoggingLevel(lv string) {
 	log.EnableLevelsByNumber(level)
 	log.EnableFormattedPrefix()
 	log.Infoln("Logging configured as ", strings.ToUpper(loggingLevel), ". Set at level ", level)
+}
+
+func createTLSConfiguration(cert string) (t *tls.Config) {
+	caCert, err := os.ReadFile(cert)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	t = &tls.Config{
+		RootCAs:            caCertPool,
+		InsecureSkipVerify: false,
+	}
+	return t
 }
