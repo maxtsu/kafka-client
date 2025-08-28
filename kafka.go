@@ -67,7 +67,7 @@ const num_consumers = 1
 
 func main() {
 	fmt.Println("kafka sarama application v0.1")
-
+	SetLoggingLevel("DEBUG")
 	// Read the config file
 	byteResult := configuration.ReadFile(config_file)
 	var configYaml configuration.Config
@@ -198,4 +198,33 @@ func main() {
 		// log.Printf("Message sent to partition %d at offset %d\n", partition, offset)
 
 	}
+}
+
+// Function to set logging level from the config.json
+func SetLoggingLevel(lv string) {
+	loggingLevel := lv // Set logging level From config.json
+	var level int = 4
+	switch loggingLevel {
+	case "debug":
+		level = 5
+	case "info":
+		level = 4
+	case "warn":
+		level = 3
+	case "error":
+		level = 2
+	default:
+		level = 4
+	}
+	// Initialize Logger
+	// Level 10 = panic, fatal, error, warn, info, debug, & trace
+	// Level 5 = panic, fatal, error, warn, info, & debug
+	// Level 4 = panic, fatal, error, warn, & info
+	// Level 3 = panic, fatal, error, & warn
+	// Level 2 = panic, fatal & error
+	// Level 1 = panic, fatal
+	log.DisableAllLevels() // Reset all logging levels
+	log.EnableLevelsByNumber(level)
+	log.EnableFormattedPrefix()
+	log.Infoln("Logging configured as ", strings.ToUpper(loggingLevel), ". Set at level ", level)
 }
