@@ -132,10 +132,8 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 
 // PublishToKafka publishes messages to kafka
 func (k *KafkaConfig) PublishToKafka(message []byte, kafkaPartionKey string) {
-	fmt.Printf("Producer a Message????")
 	// skip publishing to destination if not connected
 	if k.Producer == nil {
-		fmt.Printf("Producer NIL")
 		return
 	}
 
@@ -160,6 +158,7 @@ func (k *KafkaConfig) PublishToKafka(message []byte, kafkaPartionKey string) {
 		log.Errorln("Error while publishing to Kafka partition:", kafkaPartionKey, "err: ", err)
 		break
 	}
+	fmt.Printf("Publish to kafka function terminating")
 }
 
 // RetryConnection retries connection to Kafka every 30s until connection is made
