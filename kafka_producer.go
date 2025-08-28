@@ -34,7 +34,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	config.Producer.RequiredAcks = sarama.WaitForLocal
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
-	config.ClientID = "GROUP-IP"
+	config.ClientID = "client-ID"
 	var username, password, cert string
 	if k.Sasl != nil {
 		username = k.Sasl.Username
@@ -58,14 +58,12 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	}
 
 	// async producer
+	fmt.Printf("Bootstrap %+v confg: %+v", k.BootstrapServers, config)
 	prd, err := sarama.NewAsyncProducer(k.BootstrapServers, config)
-	fmt.Printf("async producer\n")
 
 	if err != nil {
-		fmt.Printf("err: %+v\n", err)
 		log.Errorln("Could not initialize kafka producer: ", err)
 		if retry {
-			fmt.Printf("Retry\n")
 			k.RetryProducerConnection()
 		}
 		return
