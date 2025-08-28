@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"main/configuration"
+
 	"github.com/IBM/sarama"
 	"github.com/gologme/log"
 )
@@ -56,6 +58,35 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 		config.Net.TLS.Enable = true
 		config.Net.TLS.Config = createTLSConfiguration(cert)
 	}
+
+	switch k.SecurityProtocol {
+	case "SASL_SSL":
+
+		config.Net.SASL.Enable = true
+		config.Net.SASL.Handshake = true
+
+		tlsConfig := configuration.NewTLSConfig(k.Sasl.Certificate)
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
+		fmt.Printf("TLS %+v\n", tlsConfig)
+		config.Net.TLS.Enable = true
+		config.Net.TLS.Config = tlsConfig
+	}
+	switch k.SecurityMechanism {
+	case "PLAIN": // SASLTypePlaintext represents the SASL/PLAIN mechanism
+		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		config.Net.SASL.Enable = true
+		fmt.Printf("SASL PLAIN\n")
+	case "OAUTHBEARER":
+		config.Net.SASL.Mechanism = sarama.SASLTypeOAuth
+	default:
+		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+	}
+	config.Net.SASL.User = k.Sasl.Username
+	config.Net.SASL.Password = k.Sasl.Password
+
+	fmt.Printf("CONFIG: %+v", config.Net)
 
 	// async producer
 	fmt.Printf("Bootstrap %+v confg: %+v", k.BootstrapServers, config)

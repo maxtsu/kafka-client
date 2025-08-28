@@ -39,6 +39,8 @@ type KafkaConfig struct {
 	IngestConsumer     sarama.ConsumerGroup
 	ConfigConsumer     sarama.Consumer
 	Producer           sarama.AsyncProducer
+	SecurityMechanism  string // "PLAIN" "OAUTHBEARER" "SCRAM-SHA-256"
+	SecurityProtocol   string
 	//processFunc        func(*work.AntWorkItemT, bool)
 	monitorConsumer int
 }
@@ -85,6 +87,8 @@ func main() {
 		Password:    configYaml.SaslPassword,
 		Certificate: configYaml.SslCaLocation,
 	}
+	Kafka.SecurityMechanism = configYaml.SaslMechanisms
+	Kafka.SecurityProtocol = configYaml.SecurityProtocol
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
 
