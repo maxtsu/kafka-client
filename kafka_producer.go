@@ -31,10 +31,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 
 	// producer config
 	config := sarama.NewConfig()
-	//config.Version = sarama.V0_10_2_0
-
 	config.Version = sarama.V0_11_0_2
-	config.Net.SASL.Version = sarama.SASLHandshakeV0
 
 	config.Producer.Retry.Max = 2
 	config.Producer.RequiredAcks = sarama.WaitForLocal
@@ -76,6 +73,8 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 		fmt.Printf("TLS %+v\n", tlsConfig)
 		config.Net.TLS.Enable = true
 		config.Net.TLS.Config = tlsConfig
+	case "SASL_PLAINTEXT":
+		config.Net.SASL.Version = sarama.SASLHandshakeV0
 	}
 	switch k.SecurityMechanism {
 	case "PLAIN": // SASLTypePlaintext represents the SASL/PLAIN mechanism
