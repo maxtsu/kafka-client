@@ -91,6 +91,7 @@ func main() {
 	}
 	Kafka.SecurityMechanism = configYaml.SaslMechanisms
 	Kafka.SecurityProtocol = configYaml.SecurityProtocol
+
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
 
