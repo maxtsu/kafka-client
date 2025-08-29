@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -31,7 +32,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 
 	// producer config
 	config := sarama.NewConfig()
-	config.Version = sarama.V0_11_0_2
+	//config.Version = sarama.V0_11_0_2
 
 	config.Producer.Retry.Max = 2
 	config.Producer.RequiredAcks = sarama.WaitForLocal
@@ -58,6 +59,10 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	} else {
 		config.Net.TLS.Enable = true
 		config.Net.TLS.Config = createTLSConfiguration(cert)
+		config.Net.TLS.Config = &tls.Config{
+			InsecureSkipVerify: true, // Only dev environment
+		}
+
 	}
 
 	switch k.SecurityProtocol {
