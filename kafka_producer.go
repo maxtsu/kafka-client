@@ -33,6 +33,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	// producer config
 	config := sarama.NewConfig()
 	//config.Version = sarama.V0_11_0_2
+	config.Version = sarama.V3_4_0_0 // compatible with kafka version in BT
 
 	config.Producer.Retry.Max = 2
 	config.Producer.RequiredAcks = sarama.WaitForLocal
