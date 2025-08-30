@@ -99,7 +99,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	// async producer
 	fmt.Printf("Bootstrap %+v confg: %+v", k.BootstrapServers, config)
 	prd, err := sarama.NewAsyncProducer(k.BootstrapServers, config)
-	defer prd.Close()
+	//defer prd.Close()
 
 	if err != nil {
 		log.Errorln("Could not initialize kafka producer: ", err)
