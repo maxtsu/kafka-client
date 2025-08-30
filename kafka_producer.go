@@ -32,13 +32,13 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 
 	// producer config
 	config := sarama.NewConfig()
-	//config.Version = sarama.V0_11_0_2
 	config.Version = sarama.V3_4_0_0 // compatible with kafka version in BT
 
 	config.Producer.Retry.Max = 2
 	config.Producer.RequiredAcks = sarama.WaitForLocal
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
+
 	config.ClientID = "client-ID"
 	var username, password, cert string
 	if k.Sasl != nil {
@@ -96,8 +96,6 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	config.Net.SASL.User = k.Sasl.Username
 	config.Net.SASL.Password = k.Sasl.Password
 
-	fmt.Printf("CONFIG: %+v", config.Net)
-
 	// async producer
 	fmt.Printf("Bootstrap %+v confg: %+v", k.BootstrapServers, config)
 	prd, err := sarama.NewAsyncProducer(k.BootstrapServers, config)
@@ -109,7 +107,6 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 		}
 		return
 	} else if !retry && stopKafkaProducerRetry != nil {
-		fmt.Printf("elsi if retry\n")
 		// Retry is Successful
 		stopKafkaProducerRetry <- struct{}{}
 		stopKafkaProducerRetry = nil
@@ -121,7 +118,6 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 			stopKafkaProducerChannels = append(stopKafkaProducerChannels, stopChannel)
 			ProducerUp = true
 			for {
-				fmt.Printf("WAITing for MSG")
 				select {
 				case message := <-BufKafkaProducerChan:
 					fmt.Printf("Received MSG: %+v", message)

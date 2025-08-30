@@ -22,6 +22,7 @@ type Config struct {
 	Topics            string `yaml:"topics"`
 	AutoOffset        string `yaml:"auto.offset.reset"`
 	PartitionStrategy string `yaml:"partition.assignment.strategy"`
+	NumProducers      int    `yaml:"number.producers"`
 }
 
 // Function to read text file return byteResult

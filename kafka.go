@@ -9,8 +9,10 @@ import (
 	"main/configuration"
 	"main/consumerGroup"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/IBM/sarama"
 	"github.com/gologme/log"
@@ -40,10 +42,10 @@ type KafkaConfig struct {
 	IngestConsumer     sarama.ConsumerGroup
 	ConfigConsumer     sarama.Consumer
 	Producer           sarama.AsyncProducer
+	NumProducers       int    // Number of Producers
 	SecurityMechanism  string // "PLAIN" "OAUTHBEARER" "SCRAM-SHA-256"
 	SecurityProtocol   string
 	//processFunc        func(*work.AntWorkItemT, bool)
-	monitorConsumer int
 }
 
 var Kafka = &KafkaConfig{}
@@ -53,7 +55,19 @@ const config_file = "kafka-config.yaml"
 const num_consumers = 1
 
 func main() {
+
+	run := true                            // Global run status of consumers
+	sigchan := make(chan os.Signal, 1)     // signal channel to notify on SIGNALs
+	signal.Notify(sigchan, syscall.SIGINT) // signal CTRL-C
+	go func() {                            // goroutine to catch os signals
+		for run {
+			<-sigchan   // Receive signal
+			run = false // Kill running consumers/producers and terminate application
+		}
+	}()
+
 	fmt.Println("kafka sarama application v0.1")
+	fmt.Println("Press Ctrl+C to exit")
 	SetLoggingLevel("DEBUG")
 	sarama.Logger = log.New(os.Stdout, "[Sarama] ", log.LstdFlags)
 
@@ -76,7 +90,9 @@ func main() {
 	}
 	Kafka.SecurityMechanism = configYaml.SaslMechanisms
 	Kafka.SecurityProtocol = configYaml.SecurityProtocol
-
+	//
+	//
+	//
 	//If not a producer, then a consumer in the config yaml
 	if !configYaml.Producer {
 
@@ -139,9 +155,17 @@ func main() {
 		cgroup_wg.Wait()
 		fmt.Println("Application terminated")
 	}
-
+	//
+	//
+	// Producer
+	//
 	if configYaml.Producer { // Kafka Producer
 		fmt.Println("Starting a new Sarama Producer")
+		if configYaml.NumProducers == 0 {
+			NoOfProducerGoRoutines = 1
+		} else {
+			NoOfProducerGoRoutines = configYaml.NumProducers
+		}
 
 		fmt.Printf("kafkaconfig: %+v\n", Kafka)
 		Kafka.InitProducer(true)
@@ -156,7 +180,7 @@ func main() {
 		fmt.Println("Kafka Producer sarama")
 		fmt.Println("Insert/Paste JSON message and press enter")
 		fmt.Println("CTRL-C or CTRL-Z to cancel")
-		for {
+		for run {
 			fmt.Print("-> ")
 			text, _ := reader.ReadString('\n')
 			// convert CRLF to LF
@@ -165,7 +189,7 @@ func main() {
 			// Convert string to serial byte format for transmission
 			bytes := []byte(text)
 			// Produce the message to the Kafka topic
-			Kafka.PublishToKafka(bytes, "message key")
+			Kafka.PublishToKafka(bytes, "message_key")
 
 			//err = produceMessage(producer, configYaml.Topics, bytes)
 			if err != nil {
@@ -174,7 +198,6 @@ func main() {
 			}
 			fmt.Println("Message produced successfully!")
 		}
-
 	}
 }
 
