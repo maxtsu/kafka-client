@@ -67,7 +67,7 @@ func main() {
 
 	fmt.Println("kafka sarama application v0.1")
 	fmt.Println("Press Ctrl+C to exit")
-	SetLoggingLevel("DEBUG")
+	SetLoggingLevel("debug")
 	sarama.Logger = log.New(os.Stdout, "[Sarama] ", log.LstdFlags)
 
 	// Read the config file
