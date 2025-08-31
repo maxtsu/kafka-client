@@ -121,7 +121,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 			for {
 				select {
 				case message := <-BufKafkaProducerChan:
-					fmt.Printf("Producer %d Received MSG: %+v", i, message)
+					fmt.Printf("Producer %d Received MSG: %+v\n", i, message)
 					for k, v := range message {
 						go Kafka.PublishToKafka(v, k)
 					}
