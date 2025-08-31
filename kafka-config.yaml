@@ -16,4 +16,3 @@ topics: "gnf.network.telemetry"
 auto.offset.reset: "earliest"
 #auto.offset.reset: "latest"
 partition.assignment.strategy: "range"
-#number.producers: 4

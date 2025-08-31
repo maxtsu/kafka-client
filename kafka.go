@@ -42,7 +42,6 @@ type KafkaConfig struct {
 	IngestConsumer     sarama.ConsumerGroup
 	ConfigConsumer     sarama.Consumer
 	Producer           sarama.AsyncProducer
-	NumProducers       int    // Number of Producers
 	SecurityMechanism  string // "PLAIN" "OAUTHBEARER" "SCRAM-SHA-256"
 	SecurityProtocol   string
 	//processFunc        func(*work.AntWorkItemT, bool)
@@ -161,11 +160,6 @@ func main() {
 	//
 	if configYaml.Producer { // Kafka Producer
 		fmt.Println("Starting a new Sarama Producer")
-		if configYaml.NumProducers == 0 {
-			NoOfProducerGoRoutines = 1
-		} else {
-			NoOfProducerGoRoutines = configYaml.NumProducers
-		}
 
 		fmt.Printf("kafkaconfig: %+v\n", Kafka)
 		Kafka.InitProducer(true)
@@ -189,7 +183,9 @@ func main() {
 			// Convert string to serial byte format for transmission
 			bytes := []byte(text)
 			// Produce the message to the Kafka topic
-			Kafka.PublishToKafka(bytes, "message_key")
+			m1 := map[string][]byte{"message_key": bytes}
+			BufKafkaProducerChan <- m1
+			//Kafka.PublishToKafka(bytes, "message_key")
 
 			//err = produceMessage(producer, configYaml.Topics, bytes)
 			if err != nil {

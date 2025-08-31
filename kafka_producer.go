@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	NoOfProducerGoRoutines = 1
+	NoOfProducerGoRoutines = 4
 	// buffered channel to hold map of partitionKey -> message that needs to be published to kafka
 	BufKafkaProducerChan      = make(chan map[string][]byte, 1000)
 	stopKafkaProducerChannels []chan struct{}
@@ -99,7 +99,6 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	// async producer
 	fmt.Printf("Bootstrap %+v confg: %+v", k.BootstrapServers, config)
 	prd, err := sarama.NewAsyncProducer(k.BootstrapServers, config)
-	//defer prd.Close()
 
 	if err != nil {
 		log.Errorln("Could not initialize kafka producer: ", err)
@@ -112,6 +111,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 		stopKafkaProducerRetry <- struct{}{}
 		stopKafkaProducerRetry = nil
 	}
+	//defer prd.Close()
 	k.Producer = prd
 	for i := 0; i < int(NoOfProducerGoRoutines); i++ {
 		go func() {
@@ -121,7 +121,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 			for {
 				select {
 				case message := <-BufKafkaProducerChan:
-					fmt.Printf("Received MSG: %+v", message)
+					fmt.Printf("Producer %d Received MSG: %+v", i, message)
 					for k, v := range message {
 						go Kafka.PublishToKafka(v, k)
 					}
@@ -136,11 +136,9 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 
 // PublishToKafka publishes messages to kafka
 func (k *KafkaConfig) PublishToKafka(message []byte, kafkaPartionKey string) {
-	// skip publishing to destination if not connected
-	if k.Producer == nil {
+	if k.Producer == nil { // skip publishing to destination if not connected
 		return
 	}
-
 	// publish sync
 	msg := &sarama.ProducerMessage{
 		Topic: k.ProducerTopic,
