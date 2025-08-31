@@ -184,15 +184,7 @@ func main() {
 			bytes := []byte(text)
 			// Produce the message to the Kafka topic
 			m1 := map[string][]byte{"message_key": bytes}
-			BufKafkaProducerChan <- m1
-			//Kafka.PublishToKafka(bytes, "message_key")
-
-			//err = produceMessage(producer, configYaml.Topics, bytes)
-			if err != nil {
-				fmt.Printf("Failed to produce message: %s\n", err)
-				return
-			}
-			fmt.Println("Message produced successfully!")
+			BufKafkaProducerChan <- m1 // Send to producer channel
 		}
 	}
 }

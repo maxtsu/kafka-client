@@ -154,12 +154,12 @@ func (k *KafkaConfig) PublishToKafka(message []byte, kafkaPartionKey string) {
 	select {
 	case <-k.Producer.Successes():
 		log.Debugln("Successfully published to Kafka partition: ", kafkaPartionKey)
+		fmt.Println("Successfully published to Kafka partition")
 		break
 	case err := <-k.Producer.Errors():
 		log.Errorln("Error while publishing to Kafka partition:", kafkaPartionKey, "err: ", err)
 		break
 	}
-	fmt.Printf("Publish to kafka function terminating")
 }
 
 // RetryConnection retries connection to Kafka every 30s until connection is made
