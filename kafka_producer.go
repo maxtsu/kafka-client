@@ -34,7 +34,7 @@ func (k *KafkaConfig) InitProducer(retry bool) {
 	config := sarama.NewConfig()
 	config.Version = sarama.V3_4_0_0 // compatible with kafka version in BT
 
-	config.Producer.Retry.Max = 2
+	//config.Producer.Retry.Max = 2
 	config.Producer.RequiredAcks = sarama.WaitForLocal
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
@@ -154,7 +154,6 @@ func (k *KafkaConfig) PublishToKafka(message []byte, kafkaPartionKey string) {
 	select {
 	case <-k.Producer.Successes():
 		log.Debugln("Successfully published to Kafka partition: ", kafkaPartionKey)
-		fmt.Println("Successfully published to Kafka partition")
 		break
 	case err := <-k.Producer.Errors():
 		log.Errorln("Error while publishing to Kafka partition:", kafkaPartionKey, "err: ", err)
