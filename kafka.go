@@ -42,7 +42,7 @@ func init() {
 	prometheus.MustRegister(messageLatency)
 	// Service prometheus
 	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(metric_port, nil)
+	go http.ListenAndServe(metric_port, nil)
 	fmt.Println("Completed init function")
 }
 
