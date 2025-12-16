@@ -1,9 +1,9 @@
 ---
 #configuration for kafka_sarama_v0.1.app
 #timestamp: Yes
-producer: Yes
-#producer: No
-bootstrap.servers: "10.54.16.135:9093"
+#producer: Yes
+producer: No
+bootstrap.servers: "192.168.1.115:9093"
 sasl.mechanisms: "PLAIN"
 security.protocol: "SASL_PLAINTEXT"
 #security.protocol: "SASL_SSL"
@@ -13,6 +13,6 @@ sasl.password: "secret1"
 ssl.ca.location: ""
 group.id: "testgroup"
 topics: "gnf.network.telemetry"
-auto.offset.reset: "earliest"
-#auto.offset.reset: "latest"
+#auto.offset.reset: "earliest"
+auto.offset.reset: "latest"
 partition.assignment.strategy: "range"
