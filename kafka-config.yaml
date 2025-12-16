@@ -1,13 +1,13 @@
 ---
 #configuration for kafka_sarama_v0.1.app
 #timestamp: Yes
-producer: Yes
-#producer: No
-bootstrap.servers: "192.168.1.115:9093"
+#producer: Yes
+producer: No
+bootstrap.servers: "192.168.1.115:9092"
 sasl.mechanisms: "PLAIN"
-security.protocol: "SASL_PLAINTEXT"
+#security.protocol: "SASL_PLAINTEXT"
 #security.protocol: "SASL_SSL"
-#security.protocol: "PLAINTEXT"
+security.protocol: "PLAINTEXT"
 sasl.username: "user"
 sasl.password: "secret1"
 ssl.ca.location: ""
