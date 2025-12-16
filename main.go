@@ -47,7 +47,7 @@ type KafkaConfig struct {
 	//processFunc        func(*work.AntWorkItemT, bool)
 }
 
-var Kafka = &KafkaConfig{}
+var Kafka = KafkaConfig{}
 
 // Version sarama v0.1
 const config_file = "kafka-config.yaml"
@@ -162,7 +162,7 @@ func main() {
 		fmt.Println("Starting a new Sarama Producer")
 
 		fmt.Printf("kafkaconfig: %+v\n", Kafka)
-		// Kafka.InitProducer(true)
+		Kafka.InitProducer(true)
 
 		str := "Hello, Kafka!"
 		msg := []byte(str)
