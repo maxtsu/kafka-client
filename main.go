@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -12,39 +11,11 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/yaml.v2"
 )
 
-// Version 0.8
+// Version 0.9
 const config_file = "kafka-config.yaml"
-const metric_port = ":2112"
-
-var (
-	messageCount = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "message_count",
-			Help: "Total number of message",
-		},
-	)
-	messageLatency = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Name:    "message_latency_seconds",
-			Help:    "Message latency",
-			Buckets: prometheus.DefBuckets,
-		},
-	)
-)
-
-func init() {
-	prometheus.MustRegister(messageCount)
-	prometheus.MustRegister(messageLatency)
-	// Service prometheus
-	http.Handle("/metrics", promhttp.Handler())
-	go http.ListenAndServe(metric_port, nil)
-	fmt.Println("Completed init function")
-}
 
 func main() {
 	fmt.Println("kafka application v0.9")
@@ -92,7 +63,6 @@ func main() {
 
 		run := true
 		for run {
-			messageCount.Inc() // Metric counter
 			//fmt.Printf("waiting for kafka message\n")
 			select {
 			case sig := <-sigchan:
