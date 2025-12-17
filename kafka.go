@@ -47,7 +47,7 @@ func init() {
 }
 
 func main() {
-	fmt.Println("kafka application v0.8")
+	fmt.Println("kafka application v0.9")
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -170,7 +170,7 @@ func main() {
 			// Convert string to serial byte format for transmission
 			bytes := []byte(text)
 			// Produce the message to the Kafka topic
-			err = produceMessage(producer, configYaml.Topics, bytes)
+			err = produceMessage(producer, configYaml.Topics, bytes, configYaml.MessageKey)
 			if err != nil {
 				fmt.Printf("Failed to produce message: %s\n", err)
 				return
@@ -191,6 +191,7 @@ type Config struct {
 	SaslPassword      string `yaml:"sasl.password"`
 	SslCaLocation     string `yaml:"ssl.ca.location"`
 	GroupID           string `yaml:"group.id"`
+	MessageKey        string `yaml:"message.key"`
 	Topics            string `yaml:"topics"`
 	AutoOffset        string `yaml:"auto.offset.reset"`
 	PartitionStrategy string `yaml:"partition.assignment.strategy"`
@@ -208,12 +209,12 @@ func ReadFile(fileName string) []byte {
 	return byteResult
 }
 
-func produceMessage(p *kafka.Producer, topic string, message []byte) error {
+func produceMessage(p *kafka.Producer, topic string, message []byte, messagekey string) error {
 	// Create a new Kafka message to be produced
 	kafkaMessage := &kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
 		Value:          message,
-		Key:            []byte("myKey"),
+		Key:            []byte(messagekey),
 	}
 	// Produce the Kafka message
 	deliveryChan := make(chan kafka.Event)
