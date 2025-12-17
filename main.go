@@ -55,22 +55,21 @@ const num_consumers = 1
 
 func main() {
 
-///  this is from copilot
-cfg := sarama.NewConfig()
-cfg.Version = sarama.V2_8_0cfg.Version = sarama.V2_8_0_0 // or match your Kafka version
+	// ///  this is from copilot
+	// cfg := sarama.NewConfig()
+	// cfg.Version = sarama.V2_8_0cfg.Version = sarama.V2_8_0_0 // or match your Kafka version
 
-// No SASL, No TLS for PLAINTEXT listeners:
-cfg.Net.SASL.Enable = false
-cfg.Net.TLS.Enable = false
+	// // No SASL, No TLS for PLAINTEXT listeners:
+	// cfg.Net.SASL.Enable = false
+	// cfg.Net.TLS.Enable = false
 
-// Producer
-cfg.Producer.RequiredAcks = sarama.WaitForAll
-cfg.Producer.Return.Successes = true
-cfg.Producer.Idempotent = true
+	// // Producer
+	// cfg.Producer.RequiredAcks = sarama.WaitForAll
+	// cfg.Producer.Return.Successes = true
+	// cfg.Producer.Idempotent = true
 
-brokers := []string{"192.168.1.115:9092"} // host-exposed PLAINTEXT listener
-///
-
+	// brokers := []string{"192.168.1.115:9092"} // host-exposed PLAINTEXT listener
+	// ///
 
 	run := true                            // Global run status of consumers
 	sigchan := make(chan os.Signal, 1)     // signal channel to notify on SIGNALs
