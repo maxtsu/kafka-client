@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -30,35 +29,36 @@ func main() {
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
 
-	//If not a producer, then a consumer in the config yaml
-	if !configYaml.Producer {
-		// Create kafka consumer configuration for kafkaCfg
-		// consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		// 	"bootstrap.servers":  configYaml.BootstrapServers,
-		// 	"sasl.mechanisms":    configYaml.SaslMechanisms,
-		// 	"security.protocol":  configYaml.SecurityProtocol,
-		// 	"sasl.username":      configYaml.SaslUsername,
-		// 	"sasl.password":      configYaml.SaslPassword,
-		// 	"ssl.ca.location":    configYaml.SslCaLocation,
-		// 	"group.id":           configYaml.GroupID,
-		// 	"session.timeout.ms": 6000,
-		// 	// Start reading from the first message of each assigned
-		// 	// partition if there are no previously committed offsets
-		// 	// for this group.
-		// 	"auto.offset.reset": configYaml.AutoOffset,
-		// 	// Whether or not we store offsets automatically.
-		// 	"enable.auto.offset.store":      false,
-		// 	"partition.assignment.strategy": configYaml.PartitionStrategy,
-		// })
-		if err != nil {
-			fmt.Println("Failed to create consumer. ", err)
-			os.Exit(1)
-		}
-		fmt.Println("Created Consumer. ", consumer)
+	brokers := configYaml.BootstrapServers
+	groupID := configYaml.GroupID
+	topics := []string{"test-topic"}
 
-		topics := []string{configYaml.Topics}
+	// Create kafka consumer configuration for kafkaCfg
+	// consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+	// 	"bootstrap.servers":  configYaml.BootstrapServers,
+	// 	"sasl.mechanisms":    configYaml.SaslMechanisms,
+	// 	"security.protocol":  configYaml.SecurityProtocol,
+	// 	"sasl.username":      configYaml.SaslUsername,
+	// 	"sasl.password":      configYaml.SaslPassword,
+	// 	"ssl.ca.location":    configYaml.SslCaLocation,
+	// 	"group.id":           configYaml.GroupID,
+	// 	"session.timeout.ms": 6000,
+	// 	// Start reading from the first message of each assigned
+	// 	// partition if there are no previously committed offsets
+	// 	// for this group.
+	// 	"auto.offset.reset": configYaml.AutoOffset,
+	// 	// Whether or not we store offsets automatically.
+	// 	"enable.auto.offset.store":      false,
+	// 	"partition.assignment.strategy": configYaml.PartitionStrategy,
+	// })
+	// if err != nil {
+	// 	fmt.Println("Failed to create consumer. ", err)
+	// 	os.Exit(1)
+	// }
+	// fmt.Println("Created Consumer. ", consumer)
 
-	}
+	// topics := []string{configYaml.Topics}
+
 }
 
 // configuration file kafka-config.yaml
@@ -102,7 +102,7 @@ func (consumerGroupHandler) Cleanup(s sarama.ConsumerGroupSession) error { retur
 // Must run the loop and return only when claim.Messages() channel is closed
 func (consumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		log.Printf("Message: topic=%s partition=%d offset=%d key=%s value=%s",
+		fmt.Printf("Message: topic=%s partition=%d offset=%d key=%s value=%s",
 			msg.Topic, msg.Partition, msg.Offset, string(msg.Key), string(msg.Value))
 
 		// Mark message consumed for commit
