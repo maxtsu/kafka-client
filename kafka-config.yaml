@@ -15,5 +15,5 @@ message.key: "10.213.97.77:57344_global"
 topics: "gnf.network.telemetry"
 #auto.offset.reset: "earliest"
 auto.offset.reset: "latest"
-partition.assignment.strategy: "range"
+BalanceStrategy: "range"
 number.consumers: 4

@@ -31,7 +31,19 @@ func main() {
 
 	brokers := configYaml.BootstrapServers
 	groupID := configYaml.GroupID
-	topics := []string{"test-topic"}
+	topics := configYaml.Topics
+
+	config := sarama.NewConfig()
+	config.Version = sarama.V2_6_0_0 // adjust to match your Kafka cluster version
+
+
+// Set partition strategy
+if 
+    config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRange
+    config.Consumer.Offsets.Initial = sarama.OffsetNewest // or sarama.OffsetOldest
+    config.Consumer.Return.Errors = true
+
+
 
 	// Create kafka consumer configuration for kafkaCfg
 	// consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
