@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/IBM/sarama"
@@ -29,21 +32,66 @@ func main() {
 	}
 	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
 
-	brokers := configYaml.BootstrapServers
+	brokers := strings.Split(configYaml.BootstrapServers, ",")
 	groupID := configYaml.GroupID
-	topics := configYaml.Topics
+	topics := strings.Split(configYaml.Topics, ",")
 
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_6_0_0 // adjust to match your Kafka cluster version
 
+	// Set partition strategy
+	if configYaml.BalanceStrategy == "range" {
+		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRange()}
+	} else if configYaml.BalanceStrategy == "roundrobin" {
+		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
+	} else if configYaml.BalanceStrategy == "sticky" {
+		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategySticky()}
+	}
+	// Set offest postition
+	if configYaml.ConsumerOffsets == "latest" {
+		config.Consumer.Offsets.Initial = sarama.OffsetNewest
+	} else if configYaml.ConsumerOffsets == "earliest" {
+		config.Consumer.Offsets.Initial = sarama.OffsetOldest
+	}
+	config.Consumer.Return.Errors = true
 
-// Set partition strategy
-if 
-    config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRange
-    config.Consumer.Offsets.Initial = sarama.OffsetNewest // or sarama.OffsetOldest
-    config.Consumer.Return.Errors = true
+	// // For stable consumer offsets commits manually set
+	// config.Consumer.Group.Session.Timeout = 10 * 1000 // ms
+	// config.Consumer.Group.Heartbeat.Interval = 3 * 1000 // ms
 
+	// Create consumer group
+	cg, err := sarama.NewConsumerGroup(brokers, groupID, config)
+	if err != nil {
+		fmt.Printf("Error creating consumer group: %v", err)
+	}
+	defer cg.Close()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Handle signals for graceful shutdown
+	go func() {
+		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigchan
+		log.Println("Shutdown signal received")
+		cancel()
+	}()
+
+	handler := consumerGroupHandler{}
+
+	// Consume in a loop to handle rebalances and errors
+	for {
+		if err := cg.Consume(ctx, topics, handler); err != nil {
+			log.Printf("Error from consumer: %v", err)
+		}
+		// If context was cancelled, exit loop
+		if ctx.Err() != nil {
+			break
+		}
+	}
+
+	fmt.Println("Consumer group closed")
 
 	// Create kafka consumer configuration for kafkaCfg
 	// consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
@@ -75,19 +123,19 @@ if
 
 // configuration file kafka-config.yaml
 type Config struct {
-	Timestamp         bool   `yaml:"timestamp"`
-	Producer          bool   `yaml:"producer"`
-	BootstrapServers  string `yaml:"bootstrap.servers"`
-	SaslMechanisms    string `yaml:"sasl.mechanisms"`
-	SecurityProtocol  string `yaml:"security.protocol"`
-	SaslUsername      string `yaml:"sasl.username"`
-	SaslPassword      string `yaml:"sasl.password"`
-	SslCaLocation     string `yaml:"ssl.ca.location"`
-	GroupID           string `yaml:"group.id"`
-	MessageKey        string `yaml:"message.key"`
-	Topics            string `yaml:"topics"`
-	AutoOffset        string `yaml:"auto.offset.reset"`
-	PartitionStrategy string `yaml:"partition.assignment.strategy"`
+	Timestamp        bool   `yaml:"timestamp"`
+	Producer         bool   `yaml:"producer"`
+	BootstrapServers string `yaml:"bootstrap.servers"`
+	SaslMechanisms   string `yaml:"sasl.mechanisms"`
+	SecurityProtocol string `yaml:"security.protocol"`
+	SaslUsername     string `yaml:"sasl.username"`
+	SaslPassword     string `yaml:"sasl.password"`
+	SslCaLocation    string `yaml:"ssl.ca.location"`
+	GroupID          string `yaml:"group.id"`
+	MessageKey       string `yaml:"message.key"`
+	Topics           string `yaml:"topics"`
+	ConsumerOffsets  string `yaml:"Consumer.Offsets"`
+	BalanceStrategy  string `yaml:"BalanceStrategy"`
 }
 
 // Function to read text file return byteResult
