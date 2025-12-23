@@ -53,6 +53,16 @@ func main() {
 	} else if configYaml.ConsumerOffsets == "earliest" {
 		config.Consumer.Offsets.Initial = sarama.OffsetOldest
 	}
+	// SASL/SSL (if your cluster is secured)
+	if configYaml.SaslMechanisms
+	config.Net.SASL.Enable = true
+	config.Net.SASL.Mechanism = sarama.SASLTypePlaintext // or OAUTHBEARER, SCRAM
+	config.Net.SASL.User = "username"
+	config.Net.SASL.Password = "password"
+
+	config.Net.TLS.Enable = true
+	// Optionally set config.Net.TLS.Config = &tls.Config{...} for custom CA/cert
+
 	config.Consumer.Return.Errors = true
 
 	// // For stable consumer offsets commits manually set
@@ -60,6 +70,7 @@ func main() {
 	// config.Consumer.Group.Heartbeat.Interval = 3 * 1000 // ms
 
 	// Create consumer group
+	fmt.Printf("Brokers %s\n groupID %s\n config %s\n", brokers, groupID, config)
 	cg, err := sarama.NewConsumerGroup(brokers, groupID, config)
 	if err != nil {
 		fmt.Printf("Error creating consumer group: %v", err)
@@ -90,35 +101,7 @@ func main() {
 			break
 		}
 	}
-
 	fmt.Println("Consumer group closed")
-
-	// Create kafka consumer configuration for kafkaCfg
-	// consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-	// 	"bootstrap.servers":  configYaml.BootstrapServers,
-	// 	"sasl.mechanisms":    configYaml.SaslMechanisms,
-	// 	"security.protocol":  configYaml.SecurityProtocol,
-	// 	"sasl.username":      configYaml.SaslUsername,
-	// 	"sasl.password":      configYaml.SaslPassword,
-	// 	"ssl.ca.location":    configYaml.SslCaLocation,
-	// 	"group.id":           configYaml.GroupID,
-	// 	"session.timeout.ms": 6000,
-	// 	// Start reading from the first message of each assigned
-	// 	// partition if there are no previously committed offsets
-	// 	// for this group.
-	// 	"auto.offset.reset": configYaml.AutoOffset,
-	// 	// Whether or not we store offsets automatically.
-	// 	"enable.auto.offset.store":      false,
-	// 	"partition.assignment.strategy": configYaml.PartitionStrategy,
-	// })
-	// if err != nil {
-	// 	fmt.Println("Failed to create consumer. ", err)
-	// 	os.Exit(1)
-	// }
-	// fmt.Println("Created Consumer. ", consumer)
-
-	// topics := []string{configYaml.Topics}
-
 }
 
 // configuration file kafka-config.yaml
