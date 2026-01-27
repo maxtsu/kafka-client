@@ -111,7 +111,7 @@ cfg.Net.SASL.Enable = true
 cfg.Net.SASL.User = "your-username"
 cfg.Net.SASL.Password = "your-password"
 cfg.Net.SASL.Mechanism = sarama.SASLTypePlaintext // "PLAIN"
-``
+
 
    // PLAINTEXT = no TLS, no SASL    
    cfg.Net.TLS.Enable = false    
