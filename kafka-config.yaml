@@ -3,7 +3,7 @@
 #timestamp: Yes
 #producer: Yes
 producer: No
-bootstrap.servers: "192.168.1.115:9092"
+bootstrap.servers: "10.54.177.2:9092"
 #bootstrap.servers: "ilayer-kafka-0-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-1-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-2-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-3-dev1-0.gnf.test.btnetwork.co.uk:9092"
 sasl.mechanisms: "PLAIN"
 
