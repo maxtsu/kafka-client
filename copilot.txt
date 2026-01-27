@@ -88,5 +88,38 @@ config.Net.SASL.Mechanism = sarama.SASLTypePlaintext // or OAUTHBEARER, SCRAM
 config.Net.SASL.User = "username"
 config.Net.SASL.Password = "password"
 
+
+####################################
 config.Net.TLS.Enable = true
 // Optionally set config.Net.TLS.Config = &tls.Config{...} for custom CA/cert
+
+
+Sarama Equivalent
+To match security.protocol=SASL_SSL and sasl.mechanisms=PLAIN, you must set:
+✔ Enable TLS
+✔ Enable SASL
+✔ Use SASL/PLAIN mechanism
+
+// === Equivalent of security.protocol = SASL_SSL ===
+cfg.Net.TLS.Enable = true
+cfg.Net.TLS.Config = &tls.Config{
+    InsecureSkipVerify: false, // true only if testing with self‑signed certs
+}
+
+// === Equivalent of sasl.mechanisms = PLAIN ===
+cfg.Net.SASL.Enable = true
+cfg.Net.SASL.User = "your-username"
+cfg.Net.SASL.Password = "your-password"
+cfg.Net.SASL.Mechanism = sarama.SASLTypePlaintext // "PLAIN"
+``
+###################################
+###Kafka supports four official security protocol values:
+Protocol        Meaning
+PLAINTEXT       No encryption, no authentication (port 9092 typically)  
+SSL             TLS encryption only (mTLS optional)
+SASL_PLAINTEXT  SASL authentication without TLS
+SASL_SSL        SASL authentication with TLS (recommended / most secure)
+
+###   dev1-0 settings
+sasl.mechanisms: "PLAIN"
+security.protocol: "SASL_SSL"

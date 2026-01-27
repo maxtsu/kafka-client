@@ -54,14 +54,16 @@ func main() {
 		config.Consumer.Offsets.Initial = sarama.OffsetOldest
 	}
 	// SASL/SSL (if your cluster is secured)
-	if configYaml.SaslMechanisms
-	config.Net.SASL.Enable = true
-	config.Net.SASL.Mechanism = sarama.SASLTypePlaintext // or OAUTHBEARER, SCRAM
-	config.Net.SASL.User = "username"
-	config.Net.SASL.Password = "password"
+	// sasl.mechanism PLAIN OAUTHBEARER SCRAM
+	if configYaml.SaslMechanisms == "PLAIN" { // GSSAPI, PLAIN, SCRAM-SHA-256, SCRAM-SHA-512, OAUTHBEARER.
+		config.Net.SASL.Enable = true
+		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext // or OAUTHBEARER, SCRAM
+		config.Net.SASL.User = "username"
+		config.Net.SASL.Password = "password"
 
-	config.Net.TLS.Enable = true
-	// Optionally set config.Net.TLS.Config = &tls.Config{...} for custom CA/cert
+		config.Net.TLS.Enable = true
+		// Optionally set config.Net.TLS.Config = &tls.Config{...} for custom CA/cert
+	}
 
 	config.Consumer.Return.Errors = true
 
