@@ -112,6 +112,12 @@ cfg.Net.SASL.User = "your-username"
 cfg.Net.SASL.Password = "your-password"
 cfg.Net.SASL.Mechanism = sarama.SASLTypePlaintext // "PLAIN"
 ``
+
+   // PLAINTEXT = no TLS, no SASL    
+   cfg.Net.TLS.Enable = false    
+   cfg.Net.SASL.Enable = false
+
+
 ###################################
 ###Kafka supports four official security protocol values:
 Protocol        Meaning

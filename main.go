@@ -65,6 +65,11 @@ func main() {
 		// Optionally set config.Net.TLS.Config = &tls.Config{...} for custom CA/cert
 	}
 
+	if configYaml.SecurityProtocol == "PLAINTEXT" { // PLAINTEXT = no TLS, no SASL
+		config.Net.TLS.Enable = false
+		config.Net.SASL.Enable = false
+	}
+
 	config.Consumer.Return.Errors = true
 
 	// // For stable consumer offsets commits manually set
