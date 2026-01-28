@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -68,6 +69,11 @@ func main() {
 	if configYaml.SecurityProtocol == "PLAINTEXT" { // PLAINTEXT = no TLS, no SASL
 		config.Net.TLS.Enable = false
 		config.Net.SASL.Enable = false
+	} else if configYaml.SecurityProtocol == "SASL_SSL" { // security.protocol = SASL_SSL
+		config.Net.TLS.Enable = true
+		config.Net.TLS.Config = &tls.Config{
+			InsecureSkipVerify: false, // true only if testing with self‑signed certs
+		}
 	}
 
 	config.Consumer.Return.Errors = true
