@@ -149,13 +149,16 @@ func main() {
 				Value: sarama.StringEncoder("event payload"),
 			}
 			prod.Input() <- msg
-			fmt.Printf("iteration: %d", i)
-		}
 
+		}
+		fmt.Printf("outside loop\n")
 		// Graceful shutdown
 		sig := make(chan os.Signal, 1)
+		fmt.Printf("created sig chan\n")
 		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+		fmt.Printf("post notify\n")
 		<-sig
+		fmt.Printf("post chammel\n")
 		log.Println("shutting down...")
 
 	}
