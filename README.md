@@ -1,15 +1,2 @@
-# kafka-client v0.7
-kafka golang client  
-Docker file is required for builinding a container image of the application  
-Configuration parameters in the file kafka-config.yaml  
-Can select producer or consumer Defined in the yaml file  
-In producer more messages are pasted to console  
-* 07/04/2024 v0.1 added producer capabilities
-* 27/10/2024 v0.2 added option to print timestamps to messages
-* 30/10/2024 v0.3 added headers and offset data
-* 01/11/2024 v0.4 added message keys
-* 09/12/2024 v.05 added metadata timestamp
-* 11/12/2024 v0.6 added key to producer
-* 12/12/2024 v0.7 added partition strategy
-* 2025 v0.8 included prometheus metrics
-* 17/12/2025 v0.9 added variable to insert message key
+# influx-client v0.1
+kafka golang influx client
