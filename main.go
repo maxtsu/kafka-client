@@ -44,12 +44,9 @@ func main() {
 
 	// Build query
 	db := "hb-default:my-group01:192.168.100.100"
-	measurement := "cpu"
+	measurement := "external/upload_test01"
 	q := fmt.Sprintf(`
-        SELECT mean("usage_system") AS usage_system
-        FROM %q
-        WHERE time >= now() - 15m AND "host" = 'server-01'
-        GROUP BY time(1m) fill(null)
+        SELECT * FROM %q
     `, measurement)
 
 	// Execute
