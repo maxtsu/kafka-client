@@ -149,6 +149,7 @@ func main() {
 				Value: sarama.StringEncoder("event payload"),
 			}
 			prod.Input() <- msg
+			fmt.Printf("iteration: %d", i)
 		}
 
 		// Graceful shutdown
