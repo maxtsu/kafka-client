@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -152,12 +153,36 @@ func main() {
 
 		}
 		fmt.Printf("outside loop\n")
-		// Graceful shutdown
-		// sig := make(chan os.Signal, 1)
-		// signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-		// <-sig
-		log.Println("shutting down...")
 
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Println("Kafka Producer")
+		fmt.Println("Insert/Paste JSON message and press enter")
+		fmt.Println("CTRL-C or CTRL-Z to cancel")
+		for {
+			fmt.Print("-> ")
+			text, _ := reader.ReadString('\n')
+			// convert CRLF to LF
+			text = strings.Replace(text, "\n", "", -1)
+			fmt.Println("Message to send: ", text)
+			// Convert string to serial byte format for transmission
+			// bytes := []byte(text)
+			// Produce the message to the Kafka topic
+			// err = produceMessage(producer, configYaml.Topics, bytes, configYaml.MessageKey)
+
+			msg := &sarama.ProducerMessage{
+				Topic: configYaml.Topics,
+				Key:   sarama.StringEncoder(configYaml.MessageKey),
+				Value: sarama.StringEncoder(text),
+			}
+			prod.Input() <- msg
+
+			if err != nil {
+				fmt.Printf("Failed to produce message: %s\n", err)
+				return
+			}
+			fmt.Println("Message produced successfully!")
+		}
+		log.Println("shutting down...")
 	}
 }
 
