@@ -142,18 +142,7 @@ func main() {
 			}
 		}()
 
-		// Send some messages
-		for i := 0; i < 1000; i++ {
-			msg := &sarama.ProducerMessage{
-				Topic: configYaml.Topics,
-				Key:   sarama.StringEncoder("user-123"),
-				Value: sarama.StringEncoder("event payload"),
-			}
-			prod.Input() <- msg
-
-		}
-		fmt.Printf("outside loop\n")
-
+		// Keyboard reader
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("Kafka Producer")
 		fmt.Println("Insert/Paste JSON message and press enter")
@@ -164,11 +153,6 @@ func main() {
 			// convert CRLF to LF
 			text = strings.Replace(text, "\n", "", -1)
 			fmt.Println("Message to send: ", text)
-			// Convert string to serial byte format for transmission
-			// bytes := []byte(text)
-			// Produce the message to the Kafka topic
-			// err = produceMessage(producer, configYaml.Topics, bytes, configYaml.MessageKey)
-
 			msg := &sarama.ProducerMessage{
 				Topic: configYaml.Topics,
 				Key:   sarama.StringEncoder(configYaml.MessageKey),
@@ -182,7 +166,6 @@ func main() {
 			}
 			fmt.Println("Message produced successfully!")
 		}
-		log.Println("shutting down...")
 	}
 }
 
