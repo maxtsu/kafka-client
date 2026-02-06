@@ -20,8 +20,8 @@ const config_file = "kafka-config.yaml"
 
 func main() {
 	fmt.Println("kafka application sarama v0.1")
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+	// sigchan := make(chan os.Signal, 1)
+	// signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Rad the config file
 	byteResult := ReadFile(config_file)
@@ -129,7 +129,7 @@ func main() {
 		// Goroutine to log successes
 		go func() {
 			for m := range prod.Successes() {
-				log.Printf("ok topic=%s partition=%d offset=%d", m.Topic, m.Partition, m.Offset)
+				fmt.Printf("ok topic=%s partition=%d offset=%d\n", m.Topic, m.Partition, m.Offset)
 			}
 		}()
 
@@ -153,12 +153,9 @@ func main() {
 		}
 		fmt.Printf("outside loop\n")
 		// Graceful shutdown
-		sig := make(chan os.Signal, 1)
-		fmt.Printf("created sig chan\n")
-		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-		fmt.Printf("post notify\n")
-		<-sig
-		fmt.Printf("post chammel\n")
+		// sig := make(chan os.Signal, 1)
+		// signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+		// <-sig
 		log.Println("shutting down...")
 
 	}
