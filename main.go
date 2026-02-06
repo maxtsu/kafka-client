@@ -86,7 +86,6 @@ func main() {
 		// config.Consumer.Group.Heartbeat.Interval = 3 * 1000 // ms
 
 		// Create consumer group
-		fmt.Printf("Brokers %s\n groupID %s\n config %s\n", brokers, groupID, config)
 		cg, err := sarama.NewConsumerGroup(brokers, groupID, config)
 		if err != nil {
 			fmt.Printf("Error creating consumer group: %v", err)
@@ -126,6 +125,38 @@ func main() {
 			log.Fatalf("create async producer: %v", err)
 		}
 		defer prod.Close()
+
+		// Goroutine to log successes
+		go func() {
+			for m := range prod.Successes() {
+				log.Printf("ok topic=%s partition=%d offset=%d", m.Topic, m.Partition, m.Offset)
+			}
+		}()
+
+		// Goroutine to log errors
+		go func() {
+			for e := range prod.Errors() {
+				log.Printf("err topic=%s: %v", e.Msg.Topic, e.Err)
+				// Optional: implement a retry/backoff queue if needed
+			}
+		}()
+
+		// Send some messages
+		for i := 0; i < 1000; i++ {
+			msg := &sarama.ProducerMessage{
+				Topic: configYaml.Topics,
+				Key:   sarama.StringEncoder("user-123"),
+				Value: sarama.StringEncoder("event payload"),
+			}
+			prod.Input() <- msg
+		}
+
+		// Graceful shutdown
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+		<-sig
+		log.Println("shutting down...")
+
 	}
 }
 
