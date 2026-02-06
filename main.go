@@ -40,20 +40,6 @@ func main() {
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_6_0_0 // adjust to match your Kafka cluster version
 
-	// Set partition strategy
-	if configYaml.BalanceStrategy == "range" {
-		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRange()}
-	} else if configYaml.BalanceStrategy == "roundrobin" {
-		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
-	} else if configYaml.BalanceStrategy == "sticky" {
-		config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategySticky()}
-	}
-	// Set offest postition
-	if configYaml.ConsumerOffsets == "latest" {
-		config.Consumer.Offsets.Initial = sarama.OffsetNewest
-	} else if configYaml.ConsumerOffsets == "earliest" {
-		config.Consumer.Offsets.Initial = sarama.OffsetOldest
-	}
 	// SASL/SSL (if your cluster is secured)
 	// sasl.mechanism PLAIN OAUTHBEARER SCRAM
 	if configYaml.SaslMechanisms == "PLAIN" { // GSSAPI, PLAIN, SCRAM-SHA-256, SCRAM-SHA-512, OAUTHBEARER.
@@ -76,45 +62,71 @@ func main() {
 		}
 	}
 
-	config.Consumer.Return.Errors = true
-
-	// // For stable consumer offsets commits manually set
-	// config.Consumer.Group.Session.Timeout = 10 * 1000 // ms
-	// config.Consumer.Group.Heartbeat.Interval = 3 * 1000 // ms
-
-	// Create consumer group
-	fmt.Printf("Brokers %s\n groupID %s\n config %s\n", brokers, groupID, config)
-	cg, err := sarama.NewConsumerGroup(brokers, groupID, config)
-	if err != nil {
-		fmt.Printf("Error creating consumer group: %v", err)
-	}
-	defer cg.Close()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Handle signals for graceful shutdown
-	go func() {
-		sigchan := make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-		<-sigchan
-		log.Println("Shutdown signal received")
-		cancel()
-	}()
-
-	handler := consumerGroupHandler{}
-
-	// Consume in a loop to handle rebalances and errors
-	for {
-		if err := cg.Consume(ctx, topics, handler); err != nil {
-			log.Printf("Error from consumer: %v", err)
+	if !configYaml.Producer {
+		fmt.Println("kafka consumer")
+		// Set partition strategy
+		if configYaml.BalanceStrategy == "range" {
+			config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRange()}
+		} else if configYaml.BalanceStrategy == "roundrobin" {
+			config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
+		} else if configYaml.BalanceStrategy == "sticky" {
+			config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategySticky()}
 		}
-		// If context was cancelled, exit loop
-		if ctx.Err() != nil {
-			break
+		// Set offest postition
+		if configYaml.ConsumerOffsets == "latest" {
+			config.Consumer.Offsets.Initial = sarama.OffsetNewest
+		} else if configYaml.ConsumerOffsets == "earliest" {
+			config.Consumer.Offsets.Initial = sarama.OffsetOldest
 		}
+
+		config.Consumer.Return.Errors = true
+
+		// // For stable consumer offsets commits manually set
+		// config.Consumer.Group.Session.Timeout = 10 * 1000 // ms
+		// config.Consumer.Group.Heartbeat.Interval = 3 * 1000 // ms
+
+		// Create consumer group
+		fmt.Printf("Brokers %s\n groupID %s\n config %s\n", brokers, groupID, config)
+		cg, err := sarama.NewConsumerGroup(brokers, groupID, config)
+		if err != nil {
+			fmt.Printf("Error creating consumer group: %v", err)
+		}
+		defer cg.Close()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		// Handle signals for graceful shutdown
+		go func() {
+			sigchan := make(chan os.Signal, 1)
+			signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+			<-sigchan
+			log.Println("Shutdown signal received")
+			cancel()
+		}()
+
+		handler := consumerGroupHandler{}
+
+		// Consume in a loop to handle rebalances and errors
+		for {
+			if err := cg.Consume(ctx, topics, handler); err != nil {
+				log.Printf("Error from consumer: %v", err)
+			}
+			// If context was cancelled, exit loop
+			if ctx.Err() != nil {
+				break
+			}
+		}
+		fmt.Println("Consumer group closed")
+
+	} else { //This is a producer
+		fmt.Println("kafka producer")
+		prod, err := sarama.NewAsyncProducer(brokers, config)
+		if err != nil {
+			log.Fatalf("create async producer: %v", err)
+		}
+		defer prod.Close()
 	}
-	fmt.Println("Consumer group closed")
 }
 
 // configuration file kafka-config.yaml

@@ -129,3 +129,62 @@ SASL_SSL        SASL authentication with TLS (recommended / most secure)
 ###   dev1-0 settings
 sasl.mechanisms: "PLAIN"
 security.protocol: "SASL_SSL"
+
+### Producer
+func main() {
+    brokers := []string{"localhost:9092"}
+    topic := "demo-topic"
+
+    cfg := sarama.NewConfig()
+    cfg.Producer.RequiredAcks = sarama.WaitForLocal     // leader ack only (faster)
+    cfg.Producer.Retry.Max = 5
+    cfg.Producer.Return.Successes = true                // enable successes channel
+    cfg.Producer.Idempotent = true                      // safer exactly-once within a session
+    cfg.Net.MaxOpenRequests = 1                         // required with Idempotent=true
+    cfg.Producer.Compression = sarama.CompressionZSTD   // great ratio/throughput
+    cfg.Producer.Flush.Bytes = 256 * 1024               // batch by size (tune)
+    cfg.Producer.Flush.Frequency = 10e6                 // 10ms (tune)
+    cfg.Version = sarama.V3_6_0
+
+    prod, err := sarama.NewAsyncProducer(brokers, cfg)
+    if err != nil {
+        log.Fatalf("create async producer: %v", err)
+    }
+    defer prod.Close()
+
+    // Goroutine to log successes
+    go func() {
+        for m := range prod.Successes() {
+            log.Printf("ok topic=%s partition=%d offset=%d", m.Topic, m.Partition, m.Offset)
+        }
+    }()
+
+    // Goroutine to log errors
+    go func() {
+        for e := range prod.Errors() {
+            log.Printf("err topic=%s: %v", e.Msg.Topic, e.Err)
+            // Optional: implement a retry/backoff queue if needed
+        }
+    }()
+
+    // Send some messages
+    for i := 0; i < 1000; i++ {
+        msg := &sarama.ProducerMessage{
+            Topic: topic,
+            Key:   sarama.StringEncoder("user-123"),
+            Value: sarama.StringEncoder("event payload"),
+        }
+        prod.Input() <- msg
+    }
+
+    // Graceful shutdown
+    sig := make(chan os.Signal, 1)
+    signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+    <-sig
+    log.Println("shutting down...")
+}
+
+
+
+
+
