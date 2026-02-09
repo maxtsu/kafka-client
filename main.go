@@ -51,27 +51,26 @@ func main() {
 	want := []string{"time", "cfs-id", "key1", "key2", "index"}
 
 	// Execute
-	res, err := queryDB(InfluxClient, client.NewQuery(q, db, "ns")) // precision: "ns","u","ms","s","m","h"
+	result, err := queryDB(InfluxClient, client.NewQuery(q, db, "ns")) // precision: "ns","u","ms","s","m","h"
 	if err != nil {
 		log.Errorf("Influx query error %+v", err)
 	} else { // no query error
 		// fmt.Printf("\n%+v\n", res)
 
-		rows, err := ExtractSelectedFromResults(res, want)
-		if err != nil {
-			log.Errorf("unable to extract results %+v", err)
-		}
-
-		fmt.Printf("All rows:\n %+v\n", rows)
-
-		// Print a few rows
-		for _, r := range rows {
-			fmt.Printf("cfs-id= %v key1=%v key2=%v index=%v \n", r["cfs-id"], r["key1"], r["key2"], r["index"])
-		}
+		// rows, err := ExtractSelectedFromResults(res, want)
+		// if err != nil {
+		// 	log.Errorf("unable to extract results %+v", err)
+		// }
+		// fmt.Printf("All rows:\n %+v\n", rows)
+		// // Print a few rows
+		// for _, r := range rows {
+		// 	fmt.Printf("cfs-id= %v key1=%v key2=%v index=%v \n", r["cfs-id"], r["key1"], r["key2"], r["index"])
+		// }
 
 		//Groups rows of result by cfs-id
 		fmt.Printf("GroupRowsBy Name:\n")
-		groups, err := GroupRowsByName(res, "cfs-id")
+		groupTag := "cfs-id"
+		groups, err := GroupRowsByName(result, groupTag)
 		if err != nil {
 			log.Errorf("Influx row error %+v", err)
 		} else {
@@ -85,7 +84,6 @@ func main() {
 	}
 }
 
-// //////////////////////////////////////////////////////////////////////////
 // toKey converts any cell value to a map key string.
 func toKey(v interface{}) string {
 	switch t := v.(type) {
@@ -99,23 +97,6 @@ func toKey(v interface{}) string {
 		return fmt.Sprintf("%v", t) // covers float64, json.Number, bool, etc.
 	}
 }
-
-// // joinKeys builds a composite key from multiple parts with a safe delimiter.
-// // Adjust delimiter if your data may contain '|'.
-// func joinKeys(parts ...string) string {
-//     switch len(parts) {
-//     case 0:
-//         return ""
-//     case 1:
-//         return parts[0]
-//     default:
-//         out := parts[0]
-//         for i := 1; i < len(parts); i++ {
-//             out += "|" + parts[i]
-//         }
-//         return out
-//     }
-// }
 
 // indexMap builds a name->index map for a Series.Columns slice.
 func indexMap(cols []string) map[string]int {
@@ -154,7 +135,6 @@ func GroupRowsByName(results []client.Result, colName string) (map[string][][]in
 	return groups, nil
 }
 
-// //////////////////////////////////////////////////////////////////////////
 // colIndexMap builds a name->index map for quick and safe lookups.
 func colIndexMap(cols []string) map[string]int {
 	m := make(map[string]int, len(cols))
