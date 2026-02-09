@@ -45,7 +45,7 @@ func main() {
 	// Build query
 	db := "hb-default:my-group01:192.168.100.100"
 	measurement := "external/upload_test01"
-	time_range := 3600 //seconds
+	time_range := 120 //seconds
 	q := fmt.Sprintf("SELECT * FROM %q WHERE time>now()- %ds", measurement, time_range)
 	// Choose only the fields you care about
 	want := []string{"time", "cfs-id", "key1", "key2", "index"}
@@ -70,6 +70,7 @@ func main() {
 		}
 
 		//Groups rows of result by cfs-id
+		fmt.Printf("GroupRowsBy Name:\n")
 		groups, err := GroupRowsByName(res, "cfs-id")
 		if err != nil {
 			log.Errorf("Influx row error %+v", err)
