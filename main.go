@@ -73,14 +73,14 @@ func main() {
 		groups, err := GroupRowsByName(res, "cfs-id")
 		if err != nil {
 			log.Errorf("Influx row error %+v", err)
+		} else {
+			for k, rows := range groups {
+				fmt.Println("group:", k, "count:", len(rows))
+				for _, r := range rows {
+					fmt.Printf("row: %+v\n", r)
+				}
+			}
 		}
-
-		for k, rows := range groups {
-			fmt.Println("group:", k, "count:", len(rows))
-			fmt.Printf("rows: %+v\n", rows)
-
-		}
-
 	}
 }
 
