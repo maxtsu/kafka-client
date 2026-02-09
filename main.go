@@ -49,7 +49,7 @@ func main() {
         SELECT * FROM %q
     `, measurement)
 	// Choose only the fields you care about
-	want := []string{"time", "key1", "key2", "index", "__device_timestamp__", "tandTimeOffset"}
+	want := []string{"time", "cfs-id", "key1", "key2", "index"}
 
 	// Execute
 	res, err := queryDB(InfluxClient, client.NewQuery(q, db, "ns")) // precision: "ns","u","ms","s","m","h"
@@ -73,44 +73,6 @@ func main() {
 	}
 }
 
-// //////////////////
-// ////////////Usage
-// func Usage() {
-// 	res, err := queryDB(InfluxClient, client.NewQuery(q, db, "ns"))
-// 	if err != nil {
-// 		// handle transport / exec error
-// 		panic(err)
-// 	}
-// 	if res == nil {
-// 		panic("nil response")
-// 	}
-// 	if res.Err != "" {
-// 		panic("response error: " + res.Err)
-// 	}
-
-// 	// Choose only the fields you care about
-// 	want := []string{"time", "key1", "key2", "index", "__device_timestamp__", "tandTimeOffset"}
-
-// 	// A) Directly from []client.Result:
-// 	rows, err := ExtractSelectedFromResults(res.Results, want)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	// Or B) If you prefer working with *client.Response:
-// 	rows2, err := ExtractSelectedFromResponse(res, want)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	// Print a few rows
-// 	for _, r := range rows {
-// 		fmt.Printf("time=%v key1=%v key2=%v index=%v deviceTS=%v offset=%v\n",
-// 			r["time"], r["key1"], r["key2"], r["index"], r["__device_timestamp__"], r["tandTimeOffset"])
-// 	}
-// }
-
-// /////////////////////////////
 // colIndexMap builds a name->index map for quick and safe lookups.
 func colIndexMap(cols []string) map[string]int {
 	m := make(map[string]int, len(cols))
