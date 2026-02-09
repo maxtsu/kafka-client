@@ -62,10 +62,11 @@ func main() {
 			log.Errorf("unable to extract results %+v", err)
 		}
 
+		fmt.Printf("All rows:\n %+v\n", rows)
+
 		// Print a few rows
 		for _, r := range rows {
-			fmt.Printf("time=%v cfs-id= %v key1=%v key2=%v index=%v \n",
-				r["time"], r["cfs-id"], r["key1"], r["key2"], r["index"])
+			fmt.Printf("cfs-id= %v key1=%v key2=%v index=%v \n", r["cfs-id"], r["key1"], r["key2"], r["index"])
 		}
 
 		//Groups rows of result by cfs-id
