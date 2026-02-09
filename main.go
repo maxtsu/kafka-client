@@ -66,8 +66,8 @@ func main() {
 
 		// Print a few rows
 		for _, r := range rows {
-			fmt.Printf("time=%v key1=%v key2=%v index=%v deviceTS=%v offset=%v\n",
-				r["time"], r["key1"], r["key2"], r["index"], r["__device_timestamp__"], r["tandTimeOffset"])
+			fmt.Printf("time=%v cfs-id= %v key1=%v key2=%v index=%v \n",
+				r["time"], r["cfs-id"], r["key1"], r["key2"], r["index"])
 		}
 
 	}
