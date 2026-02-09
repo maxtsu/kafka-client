@@ -48,16 +48,152 @@ func main() {
 	q := fmt.Sprintf(`
         SELECT * FROM %q
     `, measurement)
+	// Choose only the fields you care about
+	want := []string{"time", "key1", "key2", "index", "__device_timestamp__", "tandTimeOffset"}
 
 	// Execute
 	res, err := queryDB(InfluxClient, client.NewQuery(q, db, "ns")) // precision: "ns","u","ms","s","m","h"
 	if err != nil {
-		log.Fatal(err)
+		log.Errorf("Influx query error %+v", err)
+	} else { // no query error
+		fmt.Printf("\n%+v\n", res)
+
+		rows, err := ExtractSelectedFromResults(res, want)
+		if err != nil {
+			log.Errorf("unable to extract results %+v", err)
+		}
+		fmt.Printf("\n%+v\n", rows)
+
+		// Print a few rows
+		for _, r := range rows {
+			fmt.Printf("time=%v key1=%v key2=%v index=%v deviceTS=%v offset=%v\n",
+				r["time"], r["key1"], r["key2"], r["index"], r["__device_timestamp__"], r["tandTimeOffset"])
+		}
+
 	}
-
-	fmt.Printf("\n%+v\n", res)
-
 }
+
+// //////////////////
+// ////////////Usage
+// func Usage() {
+// 	res, err := queryDB(InfluxClient, client.NewQuery(q, db, "ns"))
+// 	if err != nil {
+// 		// handle transport / exec error
+// 		panic(err)
+// 	}
+// 	if res == nil {
+// 		panic("nil response")
+// 	}
+// 	if res.Err != "" {
+// 		panic("response error: " + res.Err)
+// 	}
+
+// 	// Choose only the fields you care about
+// 	want := []string{"time", "key1", "key2", "index", "__device_timestamp__", "tandTimeOffset"}
+
+// 	// A) Directly from []client.Result:
+// 	rows, err := ExtractSelectedFromResults(res.Results, want)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	// Or B) If you prefer working with *client.Response:
+// 	rows2, err := ExtractSelectedFromResponse(res, want)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	// Print a few rows
+// 	for _, r := range rows {
+// 		fmt.Printf("time=%v key1=%v key2=%v index=%v deviceTS=%v offset=%v\n",
+// 			r["time"], r["key1"], r["key2"], r["index"], r["__device_timestamp__"], r["tandTimeOffset"])
+// 	}
+// }
+
+// /////////////////////////////
+// colIndexMap builds a name->index map for quick and safe lookups.
+func colIndexMap(cols []string) map[string]int {
+	m := make(map[string]int, len(cols))
+	for i, c := range cols {
+		m[c] = i
+	}
+	return m
+}
+
+// ExtractSelectedFromResults extracts only the requested fields from a slice of client.Result.
+// It returns a slice of maps, each map = one row, with only the "want" fields present.
+func ExtractSelectedFromResults(results []client.Result, want []string) ([]map[string]interface{}, error) {
+	out := make([]map[string]interface{}, 0, 128)
+
+	for ri, r := range results {
+		if r.Err != "" {
+			return nil, fmt.Errorf("result[%d] error: %s", ri, r.Err)
+		}
+		for _, s := range r.Series {
+			idx := colIndexMap(s.Columns)
+			for _, row := range s.Values {
+				rec := make(map[string]interface{}, len(want))
+				for _, w := range want {
+					if j, ok := idx[w]; ok && j < len(row) {
+						rec[w] = row[j]
+					}
+				}
+				out = append(out, rec)
+			}
+		}
+	}
+	return out, nil
+}
+
+// // /////////////////////////////
+// // wrap []client.results into client.response
+// func WrapResults(results []client.Result) *client.Response {
+// 	return &client.Response{
+// 		Results: results,
+// 		Err:     "",
+// 	}
+// }
+
+// func extractFields(res *client.Response) error {
+// 	if res == nil {
+// 		return fmt.Errorf("nil response")
+// 	}
+// 	if res.Err != "" {
+// 		return fmt.Errorf("response error: %s", res.Err)
+// 	}
+// 	if len(res.Results) == 0 || len(res.Results[0].Series) == 0 {
+// 		fmt.Println("no series returned")
+// 		return nil
+// 	}
+
+// 	s := res.Results[0].Series[0] // assuming a single series; loop if multiple
+// 	cols := s.Columns
+
+// 	// Pick the fields you need
+// 	idxTime := mustColIdx(cols, "time")
+// 	idxKey1 := mustColIdx(cols, "key1")
+// 	idxKey2 := mustColIdx(cols, "key2")
+// 	idxIndex := mustColIdx(cols, "index")
+// 	idxDeviceTS := mustColIdx(cols, "__device_timestamp__")
+// 	idxOffset := mustColIdx(cols, "tandTimeOffset")
+
+// 	for _, row := range s.Values {
+// 		// time is usually returned as RFC3339 string; numeric (ns) only if you used epoch + precision
+// 		tsStr, _ := row[idxTime].(string)
+
+// 		key1 := toString(row[idxKey1])
+// 		key2 := toString(row[idxKey2])
+// 		idxVal := toString(row[idxIndex])
+// 		devTS := toInt64(row[idxDeviceTS]) // your data shows a 19-digit ns value
+// 		offset := toString(row[idxOffset]) // e.g., "13.305877ms"
+
+// 		fmt.Printf("time=%s key1=%s key2=%s index=%s deviceTS=%d offset=%s\n",
+// 			tsStr, key1, key2, idxVal, devTS, offset)
+// 	}
+// 	return nil
+// }
+
+/////////////////////////////////////////////////
 
 func queryDB(cl client.Client, q client.Query) ([]client.Result, error) {
 	resp, err := cl.Query(q)
