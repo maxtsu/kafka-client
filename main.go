@@ -18,8 +18,6 @@ var InfluxClient client.Client // Influx client
 var tand_host = "172.16.16.21"
 var tand_port = "28086"
 
-var time_range = 600 //seconds
-
 func main() {
 	fmt.Println("influx application v0.1")
 	sigchan := make(chan os.Signal, 1)
@@ -47,7 +45,8 @@ func main() {
 	// Build query
 	db := "hb-default:my-group01:192.168.100.100"
 	measurement := "external/upload_test01"
-	q := fmt.Sprintf("SELECT * FROM %q WHERE time>now()-1m", measurement)
+	time_range := 600 //seconds
+	q := fmt.Sprintf("SELECT * FROM %q WHERE time>now()- %ds", measurement, time_range)
 	// Choose only the fields you care about
 	want := []string{"time", "cfs-id", "key1", "key2", "index"}
 
