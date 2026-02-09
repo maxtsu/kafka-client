@@ -76,7 +76,7 @@ func main() {
 
 		for k, rows := range groups {
 			fmt.Println("group:", k, "count:", len(rows))
-			fmt.Printf("rows: %+v", rows)
+			fmt.Printf("rows: %+v\n", rows)
 
 		}
 
