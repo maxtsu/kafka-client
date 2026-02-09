@@ -56,7 +56,7 @@ func main() {
 	if err != nil {
 		log.Errorf("Influx query error %+v", err)
 	} else { // no query error
-		fmt.Printf("\n%+v\n", res)
+		// fmt.Printf("\n%+v\n", res)
 
 		rows, err := ExtractSelectedFromResults(res, want)
 		if err != nil {
@@ -77,6 +77,8 @@ func main() {
 
 		for k, rows := range groups {
 			fmt.Println("group:", k, "count:", len(rows))
+			fmt.Printf("rows: %+v", rows)
+
 		}
 
 	}
