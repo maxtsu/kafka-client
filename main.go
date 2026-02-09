@@ -18,7 +18,7 @@ var InfluxClient client.Client // Influx client
 var tand_host = "172.16.16.21"
 var tand_port = "28086"
 
-var time_range = 60 //seconds
+var time_range = 600 //seconds
 
 func main() {
 	fmt.Println("influx application v0.1")
