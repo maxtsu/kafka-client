@@ -62,7 +62,6 @@ func main() {
 		if err != nil {
 			log.Errorf("unable to extract results %+v", err)
 		}
-		fmt.Printf("\n%+v\n", rows)
 
 		// Print a few rows
 		for _, r := range rows {
@@ -70,9 +69,89 @@ func main() {
 				r["time"], r["cfs-id"], r["key1"], r["key2"], r["index"])
 		}
 
+		//Groups rows of result by cfs-id
+		groups, err := GroupRowsByName(res, "cfs-id")
+		if err != nil {
+			panic(err)
+		}
+
+		for k, rows := range groups {
+			fmt.Println("group:", k, "count:", len(rows))
+		}
+
 	}
 }
 
+// //////////////////////////////////////////////////////////////////////////
+// toKey converts any cell value to a map key string.
+func toKey(v interface{}) string {
+	switch t := v.(type) {
+	case nil:
+		return "<nil>"
+	case string:
+		return t
+	case []byte:
+		return string(t)
+	default:
+		return fmt.Sprintf("%v", t) // covers float64, json.Number, bool, etc.
+	}
+}
+
+// // joinKeys builds a composite key from multiple parts with a safe delimiter.
+// // Adjust delimiter if your data may contain '|'.
+// func joinKeys(parts ...string) string {
+//     switch len(parts) {
+//     case 0:
+//         return ""
+//     case 1:
+//         return parts[0]
+//     default:
+//         out := parts[0]
+//         for i := 1; i < len(parts); i++ {
+//             out += "|" + parts[i]
+//         }
+//         return out
+//     }
+// }
+
+// indexMap builds a name->index map for a Series.Columns slice.
+func indexMap(cols []string) map[string]int {
+	m := make(map[string]int, len(cols))
+	for i, c := range cols {
+		m[c] = i
+	}
+	return m
+}
+
+// GroupRowsByName groups rows by a column name across all results/series.
+// It builds a name->index map per series, then uses that index for grouping.
+func GroupRowsByName(results []client.Result, colName string) (map[string][][]interface{}, error) {
+	groups := make(map[string][][]interface{})
+
+	for ri, r := range results {
+		if r.Err != "" {
+			return nil, fmt.Errorf("result[%d] error: %s", ri, r.Err)
+		}
+		for _, s := range r.Series {
+			idx := indexMap(s.Columns)
+			j, ok := idx[colName]
+			if !ok {
+				// Column missing in this series; skip or choose to error
+				continue
+			}
+			for _, row := range s.Values {
+				if j >= len(row) {
+					continue
+				}
+				key := toKey(row[j])
+				groups[key] = append(groups[key], row)
+			}
+		}
+	}
+	return groups, nil
+}
+
+// //////////////////////////////////////////////////////////////////////////
 // colIndexMap builds a name->index map for quick and safe lookups.
 func colIndexMap(cols []string) map[string]int {
 	m := make(map[string]int, len(cols))
@@ -106,56 +185,6 @@ func ExtractSelectedFromResults(results []client.Result, want []string) ([]map[s
 	}
 	return out, nil
 }
-
-// // /////////////////////////////
-// // wrap []client.results into client.response
-// func WrapResults(results []client.Result) *client.Response {
-// 	return &client.Response{
-// 		Results: results,
-// 		Err:     "",
-// 	}
-// }
-
-// func extractFields(res *client.Response) error {
-// 	if res == nil {
-// 		return fmt.Errorf("nil response")
-// 	}
-// 	if res.Err != "" {
-// 		return fmt.Errorf("response error: %s", res.Err)
-// 	}
-// 	if len(res.Results) == 0 || len(res.Results[0].Series) == 0 {
-// 		fmt.Println("no series returned")
-// 		return nil
-// 	}
-
-// 	s := res.Results[0].Series[0] // assuming a single series; loop if multiple
-// 	cols := s.Columns
-
-// 	// Pick the fields you need
-// 	idxTime := mustColIdx(cols, "time")
-// 	idxKey1 := mustColIdx(cols, "key1")
-// 	idxKey2 := mustColIdx(cols, "key2")
-// 	idxIndex := mustColIdx(cols, "index")
-// 	idxDeviceTS := mustColIdx(cols, "__device_timestamp__")
-// 	idxOffset := mustColIdx(cols, "tandTimeOffset")
-
-// 	for _, row := range s.Values {
-// 		// time is usually returned as RFC3339 string; numeric (ns) only if you used epoch + precision
-// 		tsStr, _ := row[idxTime].(string)
-
-// 		key1 := toString(row[idxKey1])
-// 		key2 := toString(row[idxKey2])
-// 		idxVal := toString(row[idxIndex])
-// 		devTS := toInt64(row[idxDeviceTS]) // your data shows a 19-digit ns value
-// 		offset := toString(row[idxOffset]) // e.g., "13.305877ms"
-
-// 		fmt.Printf("time=%s key1=%s key2=%s index=%s deviceTS=%d offset=%s\n",
-// 			tsStr, key1, key2, idxVal, devTS, offset)
-// 	}
-// 	return nil
-// }
-
-/////////////////////////////////////////////////
 
 func queryDB(cl client.Client, q client.Query) ([]client.Result, error) {
 	resp, err := cl.Query(q)
