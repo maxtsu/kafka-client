@@ -48,7 +48,7 @@ func main() {
 	time_range := 120 //seconds
 	q := fmt.Sprintf("SELECT * FROM %q WHERE time>now()- %ds", measurement, time_range)
 	// Choose only the fields you care about
-	want := []string{"time", "cfs-id", "key1", "key2", "index"}
+	// want := []string{"time", "cfs-id", "key1", "key2", "index"}
 
 	// Execute
 	result, err := queryDB(InfluxClient, client.NewQuery(q, db, "ns")) // precision: "ns","u","ms","s","m","h"
