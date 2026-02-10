@@ -52,6 +52,7 @@ func main() {
 
 	// Execute
 	result, err := queryDB(InfluxClient, client.NewQuery(q, db, "ns")) // precision: "ns","u","ms","s","m","h"
+	fmt.Printf("result: %+v\n", result)
 	if err != nil {
 		log.Errorf("Influx query error %+v", err)
 	} else { // no query error
