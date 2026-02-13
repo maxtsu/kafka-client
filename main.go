@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"log"
@@ -58,9 +59,15 @@ func main() {
 		config.Net.SASL.Enable = false
 	} else if configYaml.SecurityProtocol == "SASL_SSL" { // security.protocol = SASL_SSL
 		config.Net.TLS.Enable = true
-		config.Net.TLS.Config = &tls.Config{
-			InsecureSkipVerify: false, // true only if testing with self‑signed certs
+		// Load CA certificate
+		tlsCfg, err := tlsConfigFromCA(configYaml.SslCaLocation)
+		if err != nil {
+			panic(err)
 		}
+		config.Net.TLS.Config = tlsCfg
+		// config.Net.TLS.Config = &tls.Config{
+		// 	InsecureSkipVerify: false, // true only if testing with self‑signed certs
+		// }
 	}
 
 	if !configYaml.Producer {
@@ -217,4 +224,20 @@ func (consumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim
 		sess.MarkMessage(msg, "")
 	}
 	return nil
+}
+
+func tlsConfigFromCA(path string) (*tls.Config, error) {
+	caCert, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	caPool := x509.NewCertPool()
+	if !caPool.AppendCertsFromPEM(caCert) {
+		return nil, fmt.Errorf("failed to append CA cert")
+	}
+
+	return &tls.Config{
+		RootCAs: caPool,
+	}, nil
 }
