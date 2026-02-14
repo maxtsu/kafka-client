@@ -42,8 +42,7 @@ func main() {
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_6_0_0 // adjust to match your Kafka cluster version
 
-	// SASL/SSL (if your cluster is secured)
-	// sasl.mechanism PLAIN OAUTHBEARER SCRAM
+	// SASL/SSL (if your cluster is secured)M
 	if configYaml.SaslMechanisms == "PLAIN" { // GSSAPI, PLAIN, SCRAM-SHA-256, SCRAM-SHA-512, OAUTHBEARER.
 		config.Net.SASL.Enable = true
 		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext // or OAUTHBEARER, SCRAM
@@ -52,7 +51,6 @@ func main() {
 		config.Net.TLS.Enable = true
 		// Optionally set config.Net.TLS.Config = &tls.Config{...} for custom CA/cert
 	}
-
 	if configYaml.SecurityProtocol == "PLAINTEXT" { // PLAINTEXT = no TLS, no SASL
 		config.Net.TLS.Enable = false
 		config.Net.SASL.Enable = false
@@ -68,7 +66,6 @@ func main() {
 		// 	InsecureSkipVerify: false, // true only if testing with self‑signed certs
 		// }
 	}
-
 	if !configYaml.Producer {
 		fmt.Println("kafka consumer")
 		// Set partition strategy
@@ -85,7 +82,6 @@ func main() {
 		} else if configYaml.ConsumerOffsets == "earliest" {
 			config.Consumer.Offsets.Initial = sarama.OffsetOldest
 		}
-
 		config.Consumer.Return.Errors = true
 
 		// // For stable consumer offsets commits manually set
@@ -112,7 +108,6 @@ func main() {
 		}()
 
 		handler := consumerGroupHandler{}
-
 		// Consume in a loop to handle rebalances and errors
 		for {
 			if err := cg.Consume(ctx, topics, handler); err != nil {
