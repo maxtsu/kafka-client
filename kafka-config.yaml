@@ -7,12 +7,12 @@ bootstrap.servers: "10.54.145.199:9092"
 #bootstrap.servers: "ilayer-kafka-0-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-1-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-2-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-3-dev1-0.gnf.test.btnetwork.co.uk:9092"
 sasl.mechanisms: "PLAIN"
 
-security.protocol: "PLAINTEXT"
+security.protocol: "SASL_SSL"
 # security.protocol - set to PLAINTEXT SASL_SSL or SASL_PLAINTEXT.
 
 sasl.username: "user"
 sasl.password: "secret1"
-ssl.ca.location: ""
+ssl.ca.location: "ca.crt"
 group.id: "test"
 message.key: "10.213.97.77:57344_global"
 topics: "gnf.network.telemetry"
