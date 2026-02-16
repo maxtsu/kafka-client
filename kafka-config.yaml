@@ -1,6 +1,6 @@
 ---
 #configuration for kafka_v0.1s.app
-#timestamp: Yes
+timestamp: Yes
 #producer: Yes
 producer: No
 bootstrap.servers: "10.54.145.199:9092"
