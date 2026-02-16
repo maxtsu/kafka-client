@@ -207,10 +207,10 @@ func (consumerGroupHandler) Cleanup(s sarama.ConsumerGroupSession) error { retur
 func (consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
 		if configYaml.Timestamp {
-			fmt.Printf("Message: topic=%s partition=%d offset=%d key=%s value=%s",
+			fmt.Printf("Message: topic=%s partition=%d offset=%d key=%s value=%s\n",
 				msg.Topic, msg.Partition, msg.Offset, string(msg.Key), string(msg.Value))
 		} else {
-			fmt.Printf("%s", string(msg.Value))
+			fmt.Printf("%s\n", string(msg.Value))
 		}
 		// Mark message consumed for commit
 		session.MarkMessage(msg, "")
