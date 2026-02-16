@@ -20,15 +20,14 @@ import (
 // Version 0.9
 const config_file = "kafka-config.yaml"
 
+var configYaml Config
+
 func main() {
 	fmt.Println("kafka application sarama v0.1")
-	// sigchan := make(chan os.Signal, 1)
-	// signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
-	// Rad the config file
+	// Read the config file
 	byteResult := ReadFile(config_file)
 
-	var configYaml Config
+	// var configYaml Config
 	err := yaml.Unmarshal(byteResult, &configYaml)
 	if err != nil {
 		fmt.Println("kafka-config.yaml Unmarshall error", err)
@@ -161,10 +160,6 @@ func main() {
 			}
 			prod.Input() <- msg
 
-			if err != nil {
-				fmt.Printf("Failed to produce message: %s\n", err)
-				return
-			}
 			fmt.Println("Message produced successfully!")
 		}
 	}
@@ -209,13 +204,16 @@ func (consumerGroupHandler) Cleanup(s sarama.ConsumerGroupSession) error { retur
 
 // ConsumeClaim starts a consumer loop of the given claim (partition)
 // Must run the loop and return only when claim.Messages() channel is closed
-func (consumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+func (consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		fmt.Printf("Message: topic=%s partition=%d offset=%d key=%s value=%s",
-			msg.Topic, msg.Partition, msg.Offset, string(msg.Key), string(msg.Value))
-
+		if configYaml.Timestamp {
+			fmt.Printf("Message: topic=%s partition=%d offset=%d key=%s value=%s",
+				msg.Topic, msg.Partition, msg.Offset, string(msg.Key), string(msg.Value))
+		} else {
+			fmt.Printf("%s", string(msg.Value))
+		}
 		// Mark message consumed for commit
-		sess.MarkMessage(msg, "")
+		session.MarkMessage(msg, "")
 	}
 	return nil
 }

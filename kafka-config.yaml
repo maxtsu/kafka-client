@@ -1,8 +1,8 @@
 ---
 #configuration for kafka_v0.1s.app
 #timestamp: Yes
-producer: Yes
-#producer: No
+#producer: Yes
+producer: No
 bootstrap.servers: "10.54.145.199:9092"
 #bootstrap.servers: "ilayer-kafka-0-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-1-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-2-dev1-0.gnf.test.btnetwork.co.uk:9092, ilayer-kafka-3-dev1-0.gnf.test.btnetwork.co.uk:9092"
 sasl.mechanisms: "PLAIN"
