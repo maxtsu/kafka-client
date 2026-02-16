@@ -1,4 +1,4 @@
-# kafka-client sarama v0.1s
+# kafka-client sarama v0.1
 kafka golang client  
 Docker file is required for building a container image of the application  
 Configuration parameters in the file kafka-config.yaml  
