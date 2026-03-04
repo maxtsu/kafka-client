@@ -4,7 +4,7 @@ RUN apk add alpine-sdk
 
 WORKDIR / 
 
-COPY kafka.go .
+COPY main.go .
 COPY go.mod .
 COPY go.sum .
 
