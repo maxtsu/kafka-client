@@ -100,7 +100,12 @@ func main() {
 		// Handle signals for graceful shutdown
 		go func() {
 			sigchan := make(chan os.Signal, 1)
-			signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+			signal.Notify(sigchan,
+				syscall.SIGINT,
+				syscall.SIGTERM,
+				syscall.SIGTSTP,
+				syscall.SIGQUIT,
+			)
 			<-sigchan
 			log.Println("Shutdown signal received")
 			cancel()
@@ -127,19 +132,18 @@ func main() {
 		}
 		defer prod.Close()
 
-		// Goroutine to log successes
+		// Handle signals for graceful shutdown
 		go func() {
-			for m := range prod.Successes() {
-				fmt.Printf("ok topic=%s partition=%d offset=%d\n", m.Topic, m.Partition, m.Offset)
-			}
-		}()
-
-		// Goroutine to log errors
-		go func() {
-			for e := range prod.Errors() {
-				log.Printf("err topic=%s: %v", e.Msg.Topic, e.Err)
-				// Optional: implement a retry/backoff queue if needed
-			}
+			sigchan := make(chan os.Signal, 1)
+			signal.Notify(sigchan,
+				syscall.SIGINT,
+				syscall.SIGTERM,
+				syscall.SIGTSTP,
+				syscall.SIGQUIT,
+			)
+			<-sigchan
+			log.Println("Shutdown signal received")
+			prod.Close()
 		}()
 
 		// Keyboard reader
