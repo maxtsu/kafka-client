@@ -24,7 +24,7 @@ const config_file = "kafka-config.yaml"
 var configYaml Config
 
 func main() {
-	fmt.Println("kafka application sarama v0.1")
+	fmt.Println("kafka application sarama v0.2")
 	// Read the config file
 	byteResult := ReadFile(config_file)
 
@@ -67,6 +67,9 @@ func main() {
 		// }
 	}
 	expiry := time.After(3 * time.Minute) // Expiry timer
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
 	if !configYaml.Producer {
 		fmt.Println("kafka consumer")
 		// Set partition strategy
@@ -96,8 +99,8 @@ func main() {
 		}
 		defer cg.Close()
 
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		defer cancel()
+		// ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		// defer cancel()
 
 		// Handle signals for graceful shutdown
 		go func() {
@@ -168,24 +171,87 @@ func main() {
 			}
 		}()
 
-		// Keyboard reader
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("Kafka Producer")
-		fmt.Println("Insert/Paste JSON message and press enter")
-		fmt.Println("CTRL-C or CTRL-Z to cancel")
-		for {
-			fmt.Print("-> ")
-			text, _ := reader.ReadString('\n')
-			// convert CRLF to LF
-			text = strings.Replace(text, "\n", "", -1)
-			fmt.Println("Message to send: ", text)
-			msg := &sarama.ProducerMessage{
-				Topic: configYaml.Topics,
-				Key:   sarama.StringEncoder(configYaml.MessageKey),
-				Value: sarama.StringEncoder(text),
+		lines := make(chan string)
+		// errs := make(chan error, 1)
+		// Read stdin in its own goroutine so main can exit on signals.
+		go func() {
+			defer close(lines)
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Println("Kafka Producer")
+			fmt.Println("Insert/Paste JSON message and press enter")
+			fmt.Println("CTRL-C or CTRL-Z to cancel")
+			for {
+				fmt.Print("-> ")
+				text, _ := reader.ReadString('\n')
+				// if err != nil {
+				//     // EOF or read error: notify and exit goroutine
+				//     if !errors.Is(err, io.EOF) {
+				//         errs <- err
+				//     }
+				//     return
+				// }
+				// convert CRLF to LF and trim trailing newline(s)
+				text = strings.TrimRight(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+				select {
+				case lines <- text:
+				case <-ctx.Done():
+					return
+				}
 			}
-			prod.Input() <- msg
-			fmt.Println("Message produced successfully!")
+		}()
+
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("Shutdown signal received")
+				// Close your producer and other resources here.
+				// If Close() can block, consider a short timeout/context.
+				if err := prod.Close(); err != nil {
+					log.Printf("Producer close error: %v", err)
+				} else {
+					log.Println("Producer closed cleanly")
+				}
+				return
+
+			case text, ok := <-lines:
+				if !ok { // stdin goroutine ended
+					return
+				}
+				fmt.Println("Message to send:", text)
+				msg := &sarama.ProducerMessage{
+					Topic: configYaml.Topics,
+					Key:   sarama.StringEncoder(configYaml.MessageKey),
+					Value: sarama.StringEncoder(text),
+				}
+				// Non-blocking send with optional select if you want to handle backpressure or ctx shutdown:
+				select {
+				case prod.Input() <- msg:
+					fmt.Println("Message produced successfully!")
+				case <-ctx.Done():
+					// shutdown won the race
+					continue
+				}
+
+			}
+			// // Keyboard reader
+			// reader := bufio.NewReader(os.Stdin)
+			// fmt.Println("Kafka Producer")
+			// fmt.Println("Insert/Paste JSON message and press enter")
+			// fmt.Println("CTRL-C or CTRL-Z to cancel")
+			// for {
+			// 	fmt.Print("-> ")
+			// 	text, _ := reader.ReadString('\n')
+			// 	// convert CRLF to LF
+			// 	text = strings.Replace(text, "\n", "", -1)
+			// 	fmt.Println("Message to send: ", text)
+			// 	msg := &sarama.ProducerMessage{
+			// 		Topic: configYaml.Topics,
+			// 		Key:   sarama.StringEncoder(configYaml.MessageKey),
+			// 		Value: sarama.StringEncoder(text),
+			// 	}
+			// 	prod.Input() <- msg
+			// 	fmt.Println("Message produced successfully!")
+			// }
 		}
 	}
 }
