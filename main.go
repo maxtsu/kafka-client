@@ -106,7 +106,7 @@ func main() {
 				syscall.SIGINT,
 				syscall.SIGTERM,
 				syscall.SIGTSTP,
-				syscall.SIGQUIT,
+				// syscall.SIGQUIT,
 			)
 			select {
 			case <-sigchan:
@@ -156,7 +156,7 @@ func main() {
 				syscall.SIGINT,
 				syscall.SIGTERM,
 				syscall.SIGTSTP,
-				syscall.SIGQUIT,
+				// syscall.SIGQUIT,
 			)
 			select {
 			case <-sigchan:
