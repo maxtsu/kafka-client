@@ -18,11 +18,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Version 0.9
+// Version 2.0
 const config_file = "kafka-config.yaml"
 
+var timeout = 10 * time.Minute // suicide timer
 var configYaml Config
-var timeout = 1 * time.Minute // <-- set whatever duration you want
 
 func main() {
 	fmt.Println("kafka application sarama v0.2")
@@ -67,8 +67,19 @@ func main() {
 		// 	InsecureSkipVerify: false, // true only if testing with self‑signed certs
 		// }
 	}
-	expiry := time.After(3 * time.Minute) // Expiry timer
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	// expiry := time.After(3 * time.Minute) // Expiry timer
+	// ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	// defer cancel()
+
+	// signals you want to handle for graceful shutdown
+	sigs := []os.Signal{
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGTSTP,
+	}
+	sigCtx, stop := signal.NotifyContext(context.Background(), sigs...)
+	defer stop()
+	ctx, cancel := context.WithTimeout(sigCtx, timeout)
 	defer cancel()
 
 	if !configYaml.Producer {
@@ -100,27 +111,24 @@ func main() {
 		}
 		defer cg.Close()
 
-		// ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		// defer cancel()
-
-		// Handle signals for graceful shutdown
-		go func() {
-			sigchan := make(chan os.Signal, 1)
-			signal.Notify(sigchan,
-				syscall.SIGINT,
-				syscall.SIGTERM,
-				syscall.SIGTSTP,
-				// syscall.SIGQUIT,
-			)
-			select {
-			case <-sigchan:
-				log.Println("Shutdown signal received")
-				cancel()
-			case <-expiry:
-				log.Println("Expiry timer reached")
-				cancel()
-			}
-		}()
+		// // Handle signals for graceful shutdown
+		// go func() {
+		// 	// sigchan := make(chan os.Signal, 1)
+		// 	// signal.Notify(sigchan,
+		// 	// 	syscall.SIGINT,
+		// 	// 	syscall.SIGTERM,
+		// 	// 	syscall.SIGTSTP,
+		// 	// 	// syscall.SIGQUIT,
+		// 	// )
+		// 	select {
+		// 	case <-sigchan:
+		// 		log.Println("Shutdown signal received")
+		// 		cancel()
+		// 	// case <-expiry:
+		// 	// 	log.Println("Expiry timer reached")
+		// 	// 	cancel()
+		// 	}
+		// }()
 
 		handler := consumerGroupHandler{}
 		// Consume in a loop to handle rebalances and errors
@@ -137,17 +145,16 @@ func main() {
 
 	} else { //This is a producer
 		fmt.Println("kafka producer")
-
-		// signals you want to handle for graceful shutdown
-		sigs := []os.Signal{
-			syscall.SIGINT,
-			syscall.SIGTERM,
-			syscall.SIGTSTP,
-		}
-		sigCtx, stop := signal.NotifyContext(context.Background(), sigs...)
-		defer stop()
-		ctx, cancel := context.WithTimeout(sigCtx, timeout)
-		defer cancel()
+		// // signals you want to handle for graceful shutdown
+		// sigs := []os.Signal{
+		// 	syscall.SIGINT,
+		// 	syscall.SIGTERM,
+		// 	syscall.SIGTSTP,
+		// }
+		// sigCtx, stop := signal.NotifyContext(context.Background(), sigs...)
+		// defer stop()
+		// ctx, cancel := context.WithTimeout(sigCtx, timeout)
+		// defer cancel()
 
 		prod, err := sarama.NewAsyncProducer(brokers, config)
 		if err != nil {
@@ -300,20 +307,3 @@ func tlsConfigFromCA(path string) (*tls.Config, error) {
 		RootCAs: caPool,
 	}, nil
 }
-
-// // Close producer. Force application exit after timeout if producer does not close
-// func closeProducerWithTimeout(prod sarama.AsyncProducer, timeout time.Duration) {
-// 	done := make(chan struct{})
-// 	go func() {
-// 		prod.Close()
-// 		close(done)
-// 	}()
-
-// 	select {
-// 	case <-done:
-// 		fmt.Println("Producer closed cleanly")
-// 	case <-time.After(timeout):
-// 		fmt.Println("Producer close timed out — forcing exit")
-// 		os.Exit(1) // or syscall.Kill(os.Getpid(), syscall.SIGKILL)
-// 	}
-// }
