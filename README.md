@@ -1,4 +1,4 @@
-# kafka-client sarama v0.1
+# kafka-client sarama v2
 kafka golang client  
 Docker file is required for building a container image of the application
 To create an alpine version
@@ -8,3 +8,6 @@ To create an alpine version
 Configuration parameters in the file kafka-config.yaml  
 Can select producer or consumer Defined in the yaml file  
 In producer more messages are pasted to console  
+
+- 2.0 16/03/2026
+    - Create suicide timeout app will kill itself after 10min

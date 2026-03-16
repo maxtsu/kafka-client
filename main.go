@@ -18,14 +18,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Version 2.0
+// Version 2
 const config_file = "kafka-config.yaml"
 
 var timeout = 20 * time.Second // suicide timer
 var configYaml Config
 
 func main() {
-	fmt.Println("kafka application sarama v0.2")
+	fmt.Println("Kafka application sarama v2")
 	// Read the config file
 	byteResult := ReadFile(config_file)
 
@@ -80,7 +80,8 @@ func main() {
 	defer cancel()
 
 	if !configYaml.Producer {
-		fmt.Println("kafka consumer")
+		fmt.Println("Kafka consumer")
+		fmt.Println("CTRL-C to cancel")
 		// Set partition strategy
 		if configYaml.BalanceStrategy == "range" {
 			config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRange()}
@@ -243,22 +244,6 @@ func (consumerGroupHandler) Setup(s sarama.ConsumerGroupSession) error { return 
 
 // Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited
 func (consumerGroupHandler) Cleanup(s sarama.ConsumerGroupSession) error { return nil }
-
-// ConsumeClaim starts a consumer loop of the given claim (partition)
-// Must run the loop and return only when claim.Messages() channel is closed
-// func (consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-// 	for msg := range claim.Messages() {
-// 		if configYaml.Timestamp {
-// 			fmt.Printf("Message: topic=%s partition=%d offset=%d key=%s value=%s\n",
-// 				msg.Topic, msg.Partition, msg.Offset, string(msg.Key), string(msg.Value))
-// 		} else {
-// 			fmt.Printf("%s\n", string(msg.Value))
-// 		}
-// 		// Mark message consumed for commit
-// 		session.MarkMessage(msg, "")
-// 	}
-// 	return nil
-// }
 
 func (consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for {
