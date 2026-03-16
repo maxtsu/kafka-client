@@ -43,7 +43,7 @@ func main() {
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_6_0_0 // adjust to match your Kafka cluster version
 
-	// SASL/SSL (if your cluster is secured)M
+	// SASL/SSL (if your cluster is secured)
 	if configYaml.SaslMechanisms == "PLAIN" { // GSSAPI, PLAIN, SCRAM-SHA-256, SCRAM-SHA-512, OAUTHBEARER.
 		config.Net.SASL.Enable = true
 		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext // or OAUTHBEARER, SCRAM
@@ -246,18 +246,42 @@ func (consumerGroupHandler) Cleanup(s sarama.ConsumerGroupSession) error { retur
 
 // ConsumeClaim starts a consumer loop of the given claim (partition)
 // Must run the loop and return only when claim.Messages() channel is closed
+// func (consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+// 	for msg := range claim.Messages() {
+// 		if configYaml.Timestamp {
+// 			fmt.Printf("Message: topic=%s partition=%d offset=%d key=%s value=%s\n",
+// 				msg.Topic, msg.Partition, msg.Offset, string(msg.Key), string(msg.Value))
+// 		} else {
+// 			fmt.Printf("%s\n", string(msg.Value))
+// 		}
+// 		// Mark message consumed for commit
+// 		session.MarkMessage(msg, "")
+// 	}
+// 	return nil
+// }
+
 func (consumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for msg := range claim.Messages() {
-		if configYaml.Timestamp {
-			fmt.Printf("Message: topic=%s partition=%d offset=%d key=%s value=%s\n",
-				msg.Topic, msg.Partition, msg.Offset, string(msg.Key), string(msg.Value))
-		} else {
-			fmt.Printf("%s\n", string(msg.Value))
+	for {
+		select {
+		case <-session.Context().Done():
+			// Session cancelled due to rebalance or external ctx cancellation (timeout/signal)
+			return nil
+		case msg, ok := <-claim.Messages():
+			if !ok {
+				// Broker closed the messages channel; partition is being revoked.
+				return nil
+			}
+			if configYaml.Timestamp {
+				fmt.Printf(
+					"Message: topic=%s partition=%d offset=%d key=%s value=%s\n",
+					msg.Topic, msg.Partition, msg.Offset, string(msg.Key), string(msg.Value),
+				)
+			} else {
+				fmt.Printf("%s\n", string(msg.Value))
+			}
+			session.MarkMessage(msg, "")
 		}
-		// Mark message consumed for commit
-		session.MarkMessage(msg, "")
 	}
-	return nil
 }
 
 func tlsConfigFromCA(path string) (*tls.Config, error) {
