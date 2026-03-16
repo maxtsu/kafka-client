@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -136,11 +137,20 @@ func main() {
 
 	} else { //This is a producer
 		fmt.Println("kafka producer")
+
+		// Create signal-driven context. Include SIGTERM; optional: SIGQUIT if you want graceful handling.
+		ctx, cancel := signal.NotifyContext(context.Background(),
+			syscall.SIGINT,
+			syscall.SIGTERM,
+			syscall.SIGTSTP,
+		)
+		defer cancel()
+
 		prod, err := sarama.NewAsyncProducer(brokers, config)
 		if err != nil {
 			log.Fatalf("create async producer: %v", err)
 		}
-		defer prod.Close()
+		// defer prod.Close()
 
 		go func() { // Goroutine to log successes
 			for m := range prod.Successes() {
@@ -152,24 +162,34 @@ func main() {
 				log.Printf("err topic=%s: %v", e.Msg.Topic, e.Err)
 			}
 		}()
-		// Handle signals for graceful shutdown
-		go func() {
-			sigchan := make(chan os.Signal, 1)
-			signal.Notify(sigchan,
-				syscall.SIGINT,
-				syscall.SIGTERM,
-				syscall.SIGTSTP,
-				// syscall.SIGQUIT,
-			)
-			select {
-			case <-sigchan:
-				log.Println("Shutdown signal received")
-				closeProducerWithTimeout(prod, 5*time.Second)
-			case <-expiry:
-				log.Println("Expiry timer reached")
-				closeProducerWithTimeout(prod, 5*time.Second)
-			}
-		}()
+
+		// Optional expiry timer: move it here so *main* owns shutdown.
+		var expiryCh <-chan time.Time
+		if expiry != nil { // if you had an expiry timer before
+			// If expiry was a time.Duration or a timer, adapt accordingly:
+			// expiryCh = time.After(expiryDuration)
+			// OR if expiry is already a <-chan time.Time, just use it directly.
+			expiryCh = expiry
+		}
+
+		// // Handle signals for graceful shutdown
+		// go func() {
+		// 	sigchan := make(chan os.Signal, 1)
+		// 	signal.Notify(sigchan,
+		// 		syscall.SIGINT,
+		// 		syscall.SIGTERM,
+		// 		syscall.SIGTSTP,
+		// 		// syscall.SIGQUIT,
+		// 	)
+		// 	select {
+		// 	case <-sigchan:
+		// 		log.Println("Shutdown signal received")
+		// 		closeProducerWithTimeout(prod, 5*time.Second)
+		// 	case <-expiry:
+		// 		log.Println("Expiry timer reached")
+		// 		closeProducerWithTimeout(prod, 5*time.Second)
+		// 	}
+		// }()
 
 		lines := make(chan string)
 		// errs := make(chan error, 1)
@@ -181,6 +201,12 @@ func main() {
 			fmt.Println("Insert/Paste JSON message and press enter")
 			fmt.Println("CTRL-C or CTRL-Z to cancel")
 			for {
+				// Quick check if we're shutting down before prompting
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
 				fmt.Print("-> ")
 				text, _ := reader.ReadString('\n')
 				// if err != nil {
@@ -192,6 +218,11 @@ func main() {
 				// }
 				// convert CRLF to LF and trim trailing newline(s)
 				text = strings.TrimRight(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+				// optionally skip empty input
+				if strings.TrimSpace(text) == "" {
+					continue
+				}
+
 				select {
 				case lines <- text:
 				case <-ctx.Done():
@@ -199,6 +230,19 @@ func main() {
 				}
 			}
 		}()
+
+		// Ensure we only close the producer once
+		var closeOnce sync.Once
+		closeProducer := func(where string) {
+			closeOnce.Do(func() {
+				log.Printf("Shutdown signal received (%s)", where)
+				if err := closeProducerWithTimeout(prod, 5*time.Second); err != nil {
+					log.Printf("Producer close error: %v", err)
+				} else {
+					log.Println("Producer closed cleanly")
+				}
+			})
+		}
 
 		for {
 			select {
