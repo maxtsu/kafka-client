@@ -22,6 +22,7 @@ import (
 const config_file = "kafka-config.yaml"
 
 var configYaml Config
+var timeout = 1 * time.Minute // <-- set whatever duration you want
 
 func main() {
 	fmt.Println("kafka application sarama v0.2")
@@ -137,15 +138,6 @@ func main() {
 	} else { //This is a producer
 		fmt.Println("kafka producer")
 
-		// // Create signal-driven context. Include SIGTERM; optional: SIGQUIT if you want graceful handling.
-		// //ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		// ctx, cancel := signal.NotifyContext(context.Background(),
-		// 	syscall.SIGINT,
-		// 	syscall.SIGTERM,
-		// 	syscall.SIGTSTP,
-		// )
-		// defer cancel()
-
 		// signals you want to handle for graceful shutdown
 		sigs := []os.Signal{
 			syscall.SIGINT,
@@ -154,7 +146,6 @@ func main() {
 		}
 		sigCtx, stop := signal.NotifyContext(context.Background(), sigs...)
 		defer stop()
-		timeout := 5 * time.Minute // <-- set whatever duration you want
 		ctx, cancel := context.WithTimeout(sigCtx, timeout)
 		defer cancel()
 
