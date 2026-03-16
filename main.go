@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -138,19 +137,31 @@ func main() {
 	} else { //This is a producer
 		fmt.Println("kafka producer")
 
-		// Create signal-driven context. Include SIGTERM; optional: SIGQUIT if you want graceful handling.
-		ctx, cancel := signal.NotifyContext(context.Background(),
+		// // Create signal-driven context. Include SIGTERM; optional: SIGQUIT if you want graceful handling.
+		// //ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		// ctx, cancel := signal.NotifyContext(context.Background(),
+		// 	syscall.SIGINT,
+		// 	syscall.SIGTERM,
+		// 	syscall.SIGTSTP,
+		// )
+		// defer cancel()
+
+		// signals you want to handle for graceful shutdown
+		sigs := []os.Signal{
 			syscall.SIGINT,
 			syscall.SIGTERM,
 			syscall.SIGTSTP,
-		)
+		}
+		sigCtx, stop := signal.NotifyContext(context.Background(), sigs...)
+		defer stop()
+		timeout := 5 * time.Minute // <-- set whatever duration you want
+		ctx, cancel := context.WithTimeout(sigCtx, timeout)
 		defer cancel()
 
 		prod, err := sarama.NewAsyncProducer(brokers, config)
 		if err != nil {
 			log.Fatalf("create async producer: %v", err)
 		}
-		// defer prod.Close()
 
 		go func() { // Goroutine to log successes
 			for m := range prod.Successes() {
@@ -163,36 +174,7 @@ func main() {
 			}
 		}()
 
-		// Optional expiry timer: move it here so *main* owns shutdown.
-		var expiryCh <-chan time.Time
-		if expiry != nil { // if you had an expiry timer before
-			// If expiry was a time.Duration or a timer, adapt accordingly:
-			// expiryCh = time.After(expiryDuration)
-			// OR if expiry is already a <-chan time.Time, just use it directly.
-			expiryCh = expiry
-		}
-
-		// // Handle signals for graceful shutdown
-		// go func() {
-		// 	sigchan := make(chan os.Signal, 1)
-		// 	signal.Notify(sigchan,
-		// 		syscall.SIGINT,
-		// 		syscall.SIGTERM,
-		// 		syscall.SIGTSTP,
-		// 		// syscall.SIGQUIT,
-		// 	)
-		// 	select {
-		// 	case <-sigchan:
-		// 		log.Println("Shutdown signal received")
-		// 		closeProducerWithTimeout(prod, 5*time.Second)
-		// 	case <-expiry:
-		// 		log.Println("Expiry timer reached")
-		// 		closeProducerWithTimeout(prod, 5*time.Second)
-		// 	}
-		// }()
-
 		lines := make(chan string)
-		// errs := make(chan error, 1)
 		// Read stdin in its own goroutine so main can exit on signals.
 		go func() {
 			defer close(lines)
@@ -209,16 +191,7 @@ func main() {
 				}
 				fmt.Print("-> ")
 				text, _ := reader.ReadString('\n')
-				// if err != nil {
-				//     // EOF or read error: notify and exit goroutine
-				//     if !errors.Is(err, io.EOF) {
-				//         errs <- err
-				//     }
-				//     return
-				// }
-				// convert CRLF to LF and trim trailing newline(s)
 				text = strings.TrimRight(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
-				// optionally skip empty input
 				if strings.TrimSpace(text) == "" {
 					continue
 				}
@@ -230,19 +203,6 @@ func main() {
 				}
 			}
 		}()
-
-		// Ensure we only close the producer once
-		var closeOnce sync.Once
-		closeProducer := func(where string) {
-			closeOnce.Do(func() {
-				log.Printf("Shutdown signal received (%s)", where)
-				if err := closeProducerWithTimeout(prod, 5*time.Second); err != nil {
-					log.Printf("Producer close error: %v", err)
-				} else {
-					log.Println("Producer closed cleanly")
-				}
-			})
-		}
 
 		for {
 			select {
@@ -277,25 +237,6 @@ func main() {
 				}
 
 			}
-			// // Keyboard reader
-			// reader := bufio.NewReader(os.Stdin)
-			// fmt.Println("Kafka Producer")
-			// fmt.Println("Insert/Paste JSON message and press enter")
-			// fmt.Println("CTRL-C or CTRL-Z to cancel")
-			// for {
-			// 	fmt.Print("-> ")
-			// 	text, _ := reader.ReadString('\n')
-			// 	// convert CRLF to LF
-			// 	text = strings.Replace(text, "\n", "", -1)
-			// 	fmt.Println("Message to send: ", text)
-			// 	msg := &sarama.ProducerMessage{
-			// 		Topic: configYaml.Topics,
-			// 		Key:   sarama.StringEncoder(configYaml.MessageKey),
-			// 		Value: sarama.StringEncoder(text),
-			// 	}
-			// 	prod.Input() <- msg
-			// 	fmt.Println("Message produced successfully!")
-			// }
 		}
 	}
 }
@@ -369,19 +310,19 @@ func tlsConfigFromCA(path string) (*tls.Config, error) {
 	}, nil
 }
 
-// Close producer. Force application exit after timeout if producer does not close
-func closeProducerWithTimeout(prod sarama.AsyncProducer, timeout time.Duration) {
-	done := make(chan struct{})
-	go func() {
-		prod.Close()
-		close(done)
-	}()
+// // Close producer. Force application exit after timeout if producer does not close
+// func closeProducerWithTimeout(prod sarama.AsyncProducer, timeout time.Duration) {
+// 	done := make(chan struct{})
+// 	go func() {
+// 		prod.Close()
+// 		close(done)
+// 	}()
 
-	select {
-	case <-done:
-		fmt.Println("Producer closed cleanly")
-	case <-time.After(timeout):
-		fmt.Println("Producer close timed out — forcing exit")
-		os.Exit(1) // or syscall.Kill(os.Getpid(), syscall.SIGKILL)
-	}
-}
+// 	select {
+// 	case <-done:
+// 		fmt.Println("Producer closed cleanly")
+// 	case <-time.After(timeout):
+// 		fmt.Println("Producer close timed out — forcing exit")
+// 		os.Exit(1) // or syscall.Kill(os.Getpid(), syscall.SIGKILL)
+// 	}
+// }
