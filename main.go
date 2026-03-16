@@ -138,6 +138,7 @@ func main() {
 			}
 			// If context was cancelled, exit loop
 			if ctx.Err() != nil {
+				fmt.Println("Closing!")
 				break
 			}
 		}
