@@ -21,7 +21,7 @@ import (
 // Version 2.0
 const config_file = "kafka-config.yaml"
 
-var timeout = 10 * time.Minute // suicide timer
+var timeout = 20 * time.Second // suicide timer
 var configYaml Config
 
 func main() {
@@ -67,15 +67,12 @@ func main() {
 		// 	InsecureSkipVerify: false, // true only if testing with self‑signed certs
 		// }
 	}
-	// expiry := time.After(3 * time.Minute) // Expiry timer
-	// ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	// defer cancel()
 
 	// signals you want to handle for graceful shutdown
 	sigs := []os.Signal{
 		syscall.SIGINT,
 		syscall.SIGTERM,
-		syscall.SIGTSTP,
+		// syscall.SIGTSTP,
 	}
 	sigCtx, stop := signal.NotifyContext(context.Background(), sigs...)
 	defer stop()
@@ -111,34 +108,15 @@ func main() {
 		}
 		defer cg.Close()
 
-		// // Handle signals for graceful shutdown
-		// go func() {
-		// 	// sigchan := make(chan os.Signal, 1)
-		// 	// signal.Notify(sigchan,
-		// 	// 	syscall.SIGINT,
-		// 	// 	syscall.SIGTERM,
-		// 	// 	syscall.SIGTSTP,
-		// 	// 	// syscall.SIGQUIT,
-		// 	// )
-		// 	select {
-		// 	case <-sigchan:
-		// 		log.Println("Shutdown signal received")
-		// 		cancel()
-		// 	// case <-expiry:
-		// 	// 	log.Println("Expiry timer reached")
-		// 	// 	cancel()
-		// 	}
-		// }()
-
 		handler := consumerGroupHandler{}
 		// Consume in a loop to handle rebalances and errors
 		for {
 			if err := cg.Consume(ctx, topics, handler); err != nil {
 				log.Printf("Error from consumer: %v", err)
 			}
-			// If context was cancelled, exit loop
+			// Context was cancelled: by signal OR timeout
 			if ctx.Err() != nil {
-				fmt.Println("Closing!")
+				fmt.Println("Closing consumer due to:", ctx.Err())
 				break
 			}
 		}
@@ -146,17 +124,6 @@ func main() {
 
 	} else { //This is a producer
 		fmt.Println("kafka producer")
-		// // signals you want to handle for graceful shutdown
-		// sigs := []os.Signal{
-		// 	syscall.SIGINT,
-		// 	syscall.SIGTERM,
-		// 	syscall.SIGTSTP,
-		// }
-		// sigCtx, stop := signal.NotifyContext(context.Background(), sigs...)
-		// defer stop()
-		// ctx, cancel := context.WithTimeout(sigCtx, timeout)
-		// defer cancel()
-
 		prod, err := sarama.NewAsyncProducer(brokers, config)
 		if err != nil {
 			log.Fatalf("create async producer: %v", err)
@@ -180,7 +147,7 @@ func main() {
 			reader := bufio.NewReader(os.Stdin)
 			fmt.Println("Kafka Producer")
 			fmt.Println("Insert/Paste JSON message and press enter")
-			fmt.Println("CTRL-C or CTRL-Z to cancel")
+			fmt.Println("CTRL-C to cancel")
 			for {
 				// Quick check if we're shutting down before prompting
 				select {
