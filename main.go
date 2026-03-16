@@ -21,7 +21,7 @@ import (
 // Version 2
 const config_file = "kafka-config.yaml"
 
-var timeout = 20 * time.Second // suicide timer
+var timeout = 10 * time.Minute // suicide timer
 var configYaml Config
 
 func main() {
