@@ -18,8 +18,15 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Version 2
-const config_file = "kafka-config.yaml"
+// Kafka Client Version 2.1
+func findConfigFile() string {
+	for _, name := range []string{"kafka-config.yaml", "kafka-config.yml"} {
+		if _, err := os.Stat(name); err == nil {
+			return name
+		}
+	}
+	return "kafka-config.yaml" // default, will fail with a clear error if missing
+}
 
 var timeout = 10 * time.Minute // suicide timer
 var configYaml Config
@@ -27,14 +34,14 @@ var configYaml Config
 func main() {
 	fmt.Println("Kafka application sarama v2")
 	// Read the config file
-	byteResult := ReadFile(config_file)
+	byteResult := ReadFile(findConfigFile())
 
 	// var configYaml Config
 	err := yaml.Unmarshal(byteResult, &configYaml)
 	if err != nil {
-		fmt.Println("kafka-config.yaml Unmarshall error", err)
+		fmt.Println("kafka-config.yml Unmarshall error", err)
 	}
-	fmt.Printf("kafka-config.yaml: %+v\n", configYaml)
+	fmt.Printf("kafka-config.yml: %+v\n", configYaml)
 
 	brokers := strings.Split(configYaml.BootstrapServers, ",")
 	groupID := configYaml.GroupID
